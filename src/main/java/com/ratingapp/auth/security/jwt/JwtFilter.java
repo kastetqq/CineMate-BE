@@ -16,6 +16,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.ratingapp.auth.security.CustomUserServiceImpl;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -24,10 +26,21 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserServiceImpl customUserService;
 
+    private final List<String> allowedOrigins = Arrays.asList(
+        "http://localhost:3000"
+    );
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, 
                                     HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
+        
+        setCorsHeaders(request, response);
+        
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
         
         try {
             String token = getTokenFromRequest(request);
@@ -41,6 +54,30 @@ public class JwtFilter extends OncePerRequestFilter {
         }
         
         filterChain.doFilter(request, response);
+    }
+
+    private void setCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader("Origin");
+        
+        if (origin != null && isAllowedOrigin(origin)) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+        }
+        
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+        response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Max-Age", "3600");
+        
+        response.setHeader("Access-Control-Expose-Headers", "Authorization, Content-Type");
+    }
+
+    private boolean isAllowedOrigin(String origin) {
+        return allowedOrigins.contains(origin);
+    }
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
     }
 
     private void setAuthenticationToSecurityContextHolder(String token, HttpServletRequest request) {
