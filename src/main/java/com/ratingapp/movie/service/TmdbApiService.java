@@ -5,9 +5,12 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -84,18 +87,19 @@ public class TmdbApiService {
     }
     
     public MovieDetails getMovieDetails(Long tmdbId) {
-        String url = baseUrl + "/movie/" + tmdbId + "?language=ru&append_to_response=credits";
-        
+        String url = baseUrl + "/movie/" + tmdbId + 
+                    "?language=ru&append_to_response=credits,release_dates,videos";
+    
         try {
             ResponseEntity<TmdbMovieResponse> response = makeTmdbRequest(url, TmdbMovieResponse.class);
-            
+        
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return convertToMovieDetails(response.getBody());
             }
         } catch (Exception e) {
             log.error("Error fetching movie details from TMDB for id: {}", tmdbId, e);
         }
-        
+    
         return null;
     }
     
@@ -118,45 +122,66 @@ public class TmdbApiService {
         return new MovieDetails(movie, actors);
     }
     
-    private Movie convertToMovieEntity(TmdbMovieResponse tmdbMovie) {
-        Movie movie = new Movie();
-        movie.setTmdbId(tmdbMovie.getId());
-        movie.setTitle(tmdbMovie.getTitle());
-        movie.setOriginalTitle(tmdbMovie.getOriginalTitle());
-        movie.setOverview(tmdbMovie.getOverview());
-        movie.setPopularity(tmdbMovie.getPopularity());
-        movie.setVoteAverage(tmdbMovie.getVoteAverage());
-        movie.setVoteCount(tmdbMovie.getVoteCount());
-        movie.setRuntime(tmdbMovie.getRuntime());
+private Movie convertToMovieEntity(TmdbMovieResponse tmdbMovie) {
+    Movie movie = new Movie();
+    movie.setTmdbId(tmdbMovie.getId());
+    movie.setTitle(tmdbMovie.getTitle());
+    movie.setOriginalTitle(tmdbMovie.getOriginalTitle());
+    movie.setOverview(tmdbMovie.getOverview());
+    movie.setPopularity(tmdbMovie.getPopularity());
+    movie.setVoteAverage(tmdbMovie.getVoteAverage());
+    movie.setVoteCount(tmdbMovie.getVoteCount());
+    
+    movie.setRuntime(tmdbMovie.getRuntime() != null ? tmdbMovie.getRuntime() : 0);
+    
+    if (tmdbMovie.getPosterPath() != null) {
         movie.setPosterPath(tmdbMovie.getPosterPath());
+    }
+    
+    if (tmdbMovie.getBackdropPath() != null) {
         movie.setBackdropPath(tmdbMovie.getBackdropPath());
-        movie.setStatus(tmdbMovie.getStatus());
-        movie.setOriginalLanguage(tmdbMovie.getOriginalLanguage());
-
-        if (tmdbMovie.getReleaseDate() != null && !tmdbMovie.getReleaseDate().isEmpty()) {
+    }
+    
+    movie.setStatus(tmdbMovie.getStatus() != null ? tmdbMovie.getStatus() : "Unknown");
+    movie.setOriginalLanguage(tmdbMovie.getOriginalLanguage() != null ? tmdbMovie.getOriginalLanguage() : "en");
+    
+    if (tmdbMovie.getReleaseDate() != null && !tmdbMovie.getReleaseDate().isEmpty()) {
+        try {
+            movie.setReleaseDate(LocalDate.parse(tmdbMovie.getReleaseDate()));
+        } catch (DateTimeParseException e) {
+            log.warn("Invalid date format: {}", tmdbMovie.getReleaseDate());
             try {
-                movie.setReleaseDate(LocalDate.parse(tmdbMovie.getReleaseDate()));
-            } catch (DateTimeParseException e) {
-                log.warn("Invalid date format: {}", tmdbMovie.getReleaseDate());
+                movie.setReleaseDate(LocalDate.parse(tmdbMovie.getReleaseDate(), 
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            } catch (DateTimeParseException ex) {
+                log.error("Could not parse date: {}", tmdbMovie.getReleaseDate());
             }
         }
-        
-        if (tmdbMovie.getGenres() != null) {
-            List<String> genreNames = tmdbMovie.getGenres().stream()
-                .map(genre -> genre.getName())
-                .collect(Collectors.toList());
-            movie.setGenres(genreNames);
-        }
-        
-        if (tmdbMovie.getBudget() != null) {
-            movie.setBudget(BigDecimal.valueOf(tmdbMovie.getBudget()));
-        }
-        if (tmdbMovie.getRevenue() != null) {
-            movie.setRevenue(BigDecimal.valueOf(tmdbMovie.getRevenue()));
-        }
-        
-        return movie;
     }
+
+    if (tmdbMovie.getGenres() != null && !tmdbMovie.getGenres().isEmpty()) {
+        List<String> genreNames = tmdbMovie.getGenres().stream()
+            .map(genre -> genre.getName())
+            .collect(Collectors.toList());
+        movie.setGenres(genreNames);
+    } else {
+        movie.setGenres(Collections.emptyList());
+    }
+    
+    if (tmdbMovie.getBudget() != null && tmdbMovie.getBudget() > 0) {
+        movie.setBudget(BigDecimal.valueOf(tmdbMovie.getBudget()));
+    }
+    
+    if (tmdbMovie.getRevenue() != null && tmdbMovie.getRevenue() > 0) {
+        movie.setRevenue(BigDecimal.valueOf(tmdbMovie.getRevenue()));
+    }
+    
+    if (tmdbMovie.getCredits() != null && tmdbMovie.getCredits().getCrew() != null) {
+        extractCrewMembers(tmdbMovie, movie);
+    }
+    
+    return movie;
+}
     
     private List<Actor> extractActors(TmdbMovieResponse tmdbMovie, Movie movie) {
         if (tmdbMovie.getCredits() == null || tmdbMovie.getCredits().getCast() == null) {
@@ -178,35 +203,32 @@ public class TmdbApiService {
             .collect(Collectors.toList());
     }
     
-    private void extractCrewMembers(TmdbMovieResponse tmdbMovie, Movie movie) {
-        if (tmdbMovie.getCredits() == null || tmdbMovie.getCredits().getCrew() == null) {
-            return;
-        }
-        
-        for (TmdbMovieResponse.Crew crew : tmdbMovie.getCredits().getCrew()) {
-            switch (crew.getJob()) {
-                case "Director":
-                    movie.setDirector(crew.getName());
-                    break;
-                case "Screenplay":
-                case "Writer":
-                    movie.setScreenwriter(crew.getName());
-                    break;
-                case "Producer":
-                    movie.setProducer(crew.getName());
-                    break;
-                case "Original Music Composer":
-                    movie.setComposer(crew.getName());
-                    break;
-                case "Director of Photography":
-                    movie.setCinematographer(crew.getName());
-                    break;
-                case "Editor":
-                    movie.setEditor(crew.getName());
-                    break;
-            }
-        }
+private void extractCrewMembers(TmdbMovieResponse tmdbMovie, Movie movie) {
+    Map<String, List<TmdbMovieResponse.Crew>> crewByJob = tmdbMovie.getCredits().getCrew().stream()
+        .collect(Collectors.groupingBy(TmdbMovieResponse.Crew::getJob));
+
+    extractMainCrew(crewByJob, "Director", movie::setDirector);
+    extractMainCrew(crewByJob, "Screenplay", movie::setScreenwriter);
+    extractMainCrew(crewByJob, "Writer", movie::setScreenwriter);
+    extractMainCrew(crewByJob, "Producer", movie::setProducer);
+    extractMainCrew(crewByJob, "Original Music Composer", movie::setComposer);
+    extractMainCrew(crewByJob, "Director of Photography", movie::setCinematographer);
+    extractMainCrew(crewByJob, "Editor", movie::setEditor);
+
+    if (movie.getDirector() == null) {
+        extractMainCrew(crewByJob, "Series Director", movie::setDirector);
     }
+}
+
+private void extractMainCrew(Map<String, List<TmdbMovieResponse.Crew>> crewByJob, 
+                           String job, Consumer<String> setter) {
+    List<TmdbMovieResponse.Crew> crewList = crewByJob.get(job);
+    if (crewList != null && !crewList.isEmpty()) {
+        setter.accept(crewList.get(0).getName());
+        
+        log.info("Found {}: {}", job, crewList.get(0).getName());
+    }
+}
 
 private List<Movie> fetchMoviesFromTmdb(String url) {
     log.info("🎬 Starting to fetch movies from TMDB: {}", url);
@@ -265,15 +287,13 @@ private <T> ResponseEntity<T> makeTmdbRequest(String url, Class<T> responseType)
         log.info("🔄 Calling TMDB API: {}", url);
         log.info("🔑 Headers: {}", headers);
         
-        RestTemplate restTemplate = new RestTemplate();
-        
         restTemplate.getInterceptors().add((request, body, execution) -> {
             log.info("📤 Request URI: {}", request.getURI());
             log.info("📤 Request Headers: {}", request.getHeaders());
             return execution.execute(request, body);
         });
         
-        ResponseEntity<T> response = restTemplate.exchange(
+        ResponseEntity<T> response = this.restTemplate.exchange(
             url, 
             HttpMethod.GET, 
             entity, 

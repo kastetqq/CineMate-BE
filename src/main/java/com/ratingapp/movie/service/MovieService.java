@@ -3,7 +3,6 @@ package com.ratingapp.movie.service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -40,7 +39,7 @@ public class MovieService {
         
         if (movies.isEmpty()) {
             movies = tmdbApiService.getPopularMovies(page);
-            movieRepository.saveAll(movies);
+            movies = saveMoviesIfNeeded(movies);
         }
         
         return movies;
@@ -71,23 +70,73 @@ public class MovieService {
         return saveMoviesIfNeeded(movies);
     }
     
+    @Transactional
     public MovieDetails getMovieDetails(Long tmdbId) {
-        Optional<Movie> existingMovie = movieRepository.findByTmdbId(tmdbId);
-        if (existingMovie.isPresent()) {
-            Movie movie = existingMovie.get();
-            List<Actor> actors = actorRepository.findByMovieIdOrderByOrderAsc(movie.getId());
-            return new MovieDetails(movie, actors);
-        }
-        
+        // Всегда получаем свежие данные из TMDB
         TmdbApiService.MovieDetails tmdbDetails = tmdbApiService.getMovieDetails(tmdbId);
-        if (tmdbDetails != null) {
-            Movie savedMovie = movieRepository.save(tmdbDetails.getMovie());
-            List<Actor> savedActors = actorRepository.saveAll(tmdbDetails.getActors());
-            
-            return new MovieDetails(savedMovie, savedActors);
+        
+        if (tmdbDetails == null) {
+            throw new RuntimeException("Movie not found in TMDB with id: " + tmdbId);
         }
         
-        throw new RuntimeException("Movie not found with tmdbId: " + tmdbId);
+        Optional<Movie> existingMovie = movieRepository.findByTmdbId(tmdbId);
+        Movie movieToProcess;
+        List<Actor> actors;
+        
+        if (existingMovie.isPresent()) {
+            // Обновляем существующий фильм
+            Movie existing = existingMovie.get();
+            updateMovieFromTmdb(existing, tmdbDetails.getMovie());
+            
+            // Удаляем старых актеров
+            actorRepository.deleteByMovieId(existing.getId());
+            
+            // Сохраняем обновленный фильм
+            movieToProcess = movieRepository.save(existing);
+        } else {
+            // Сохраняем новый фильм
+            movieToProcess = movieRepository.save(tmdbDetails.getMovie());
+        }
+        
+        // Привязываем актеров к фильму
+        Movie finalMovie = movieToProcess; // final переменная для лямбды
+        tmdbDetails.getActors().forEach(actor -> actor.setMovie(finalMovie));
+        
+        // Сохраняем актеров
+        actors = actorRepository.saveAll(tmdbDetails.getActors());
+        
+        log.info("Saved/Updated movie: {}, with {} actors", 
+                 movieToProcess.getTitle(), actors.size());
+        log.debug("Movie details - Budget: {}, Revenue: {}, Runtime: {}, Director: {}, Genres: {}", 
+                 movieToProcess.getBudget(), movieToProcess.getRevenue(), 
+                 movieToProcess.getRuntime(), movieToProcess.getDirector(),
+                 movieToProcess.getGenres());
+        
+        return new MovieDetails(movieToProcess, actors);
+    }
+    
+    private void updateMovieFromTmdb(Movie existing, Movie newData) {
+        existing.setTitle(newData.getTitle());
+        existing.setOriginalTitle(newData.getOriginalTitle());
+        existing.setOverview(newData.getOverview());
+        existing.setPopularity(newData.getPopularity());
+        existing.setVoteAverage(newData.getVoteAverage());
+        existing.setVoteCount(newData.getVoteCount());
+        existing.setReleaseDate(newData.getReleaseDate());
+        existing.setRuntime(newData.getRuntime());
+        existing.setPosterPath(newData.getPosterPath());
+        existing.setBackdropPath(newData.getBackdropPath());
+        existing.setStatus(newData.getStatus());
+        existing.setOriginalLanguage(newData.getOriginalLanguage());
+        existing.setGenres(newData.getGenres());
+        existing.setBudget(newData.getBudget());
+        existing.setRevenue(newData.getRevenue());
+        existing.setDirector(newData.getDirector());
+        existing.setScreenwriter(newData.getScreenwriter());
+        existing.setProducer(newData.getProducer());
+        existing.setComposer(newData.getComposer());
+        existing.setCinematographer(newData.getCinematographer());
+        existing.setEditor(newData.getEditor());
     }
     
     @Data
@@ -103,9 +152,9 @@ public class MovieService {
     
     private List<Movie> saveMoviesIfNeeded(List<Movie> movies) {
         return movies.stream()
-            .map(movie -> {
-                Optional<Movie> existing = movieRepository.findByTmdbId(movie.getTmdbId());
-                return existing.orElseGet(() -> movieRepository.save(movie));
+            .map(movieItem -> {
+                Optional<Movie> existing = movieRepository.findByTmdbId(movieItem.getTmdbId());
+                return existing.orElseGet(() -> movieRepository.save(movieItem));
             })
             .collect(Collectors.toList());
     }

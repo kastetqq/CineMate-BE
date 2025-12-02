@@ -32,6 +32,28 @@ public class MovieController {
         List<Movie> movies = movieService.getPopularMovies(page);
         return ResponseEntity.ok(convertToResponse(movies));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<MovieResponse>> searchMovies(
+        @RequestParam String query, 
+        @RequestParam(defaultValue = "1") int page) {
+        List<Movie> movies = movieService.searchMovies(query, page);
+        return ResponseEntity.ok(convertToResponse(movies));
+    }
+
+    @GetMapping("/new-releases")
+    public ResponseEntity<List<MovieResponse>> getNewReleases(
+        @RequestParam(defaultValue = "1") int page) {
+        List<Movie> movies = movieService.getNewReleases(page);
+        return ResponseEntity.ok(convertToResponse(movies));
+    }
+
+    @GetMapping("/recommendations")
+    public ResponseEntity<List<MovieResponse>> getRecommendedMovies(
+        @RequestParam(defaultValue = "1") int page) {
+        List<Movie> movies = movieService.getRecommendedMovies(page);
+        return ResponseEntity.ok(convertToResponse(movies));
+    }
     
     @GetMapping("/trending")
     public ResponseEntity<List<MovieResponse>> getTrendingMovies(@RequestParam(defaultValue = "1") int page) {
