@@ -8,5 +8,20 @@
     "name": "jwt.secret",
     "type": "java.lang.String",
     "description": "A description for 'jwt.secret'"
+  },
+  {
+    "name": "tmdb.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'tmdb.api.key'"
+  },
+  {
+    "name": "tmdb.api.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'tmdb.api.base-url'"
+  },
+  {
+    "name": "tmdb.image.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'tmdb.image.base-url'"
   }
 ]}

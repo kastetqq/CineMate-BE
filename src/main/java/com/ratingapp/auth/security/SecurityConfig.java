@@ -53,8 +53,8 @@ public class SecurityConfig {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .httpBasic(AbstractHttpConfigurer::disable)
             .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth.requestMatchers("api/auth/**").permitAll()
-                .requestMatchers("/**","api/auth/sign-out").authenticated())
+            .authorizeHttpRequests(auth -> auth.requestMatchers("api/auth/**", "api/movies/**").permitAll()
+                .requestMatchers("/**","api/auth/sign-out" ).authenticated())
             .sessionManagement(session-> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
