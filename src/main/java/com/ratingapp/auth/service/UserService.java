@@ -19,6 +19,16 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     
+    public User getByUsername(String username) {
+        return userRepository.findByUsername(username)
+        .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+    }
+    
+    public User getByEmail(String email) {
+        return userRepository.findByEmail(email)
+        .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
+
     @Transactional
     public UserResponseDto registerUser(UserCredentialsDto request) {
         if (userRepository.existsByEmail(request.getEmail()) || userRepository.existsByUsername(request.getUsername())) {
@@ -46,5 +56,7 @@ public class UserService {
         response.setCreatedAt(user.getCreatedAt());
         return response;
     }
+
+
 
 }

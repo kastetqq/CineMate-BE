@@ -44,7 +44,7 @@ public class TmdbApiService {
     
     public TmdbApiService(RestTemplateBuilder restTemplateBuilder) {
         this.restTemplate = restTemplateBuilder.build();
-        log.info("🔑 TMDB API Service initialized with Bearer Token authentication");
+        log.info("TMDB API Service initialized with Bearer Token authentication");
     }
 
     public List<Movie> getPopularMovies(int page) {
@@ -231,46 +231,46 @@ private void extractMainCrew(Map<String, List<TmdbMovieResponse.Crew>> crewByJob
 }
 
 private List<Movie> fetchMoviesFromTmdb(String url) {
-    log.info("🎬 Starting to fetch movies from TMDB: {}", url);
+    log.info("Starting to fetch movies from TMDB: {}", url);
     
     try {
         ResponseEntity<TmdbMovieListResponse> response = makeTmdbRequest(url, TmdbMovieListResponse.class);
         
-        log.info("📊 Response status: {}", response.getStatusCode());
+        log.info("Response status: {}", response.getStatusCode());
         
         if (response.getStatusCode().is2xxSuccessful()) {
             TmdbMovieListResponse body = response.getBody();
             
             if (body == null) {
-                log.warn("⚠️ TMDB API returned null body");
+                log.warn("TMDB API returned null body");
                 return Collections.emptyList();
             }
             
-            log.info("📊 TMDB Response - Page: {}, Total Pages: {}, Total Results: {}", 
+            log.info("TMDB Response - Page: {}, Total Pages: {}, Total Results: {}", 
                 body.getPage(), body.getTotalPages(), body.getTotalResults());
             
             if (body.getResults() != null) {
-                log.info("🎭 Received {} movies from TMDB", body.getResults().size());
+                log.info("Received {} movies from TMDB", body.getResults().size());
                 
                 if (!body.getResults().isEmpty()) {
                     List<Movie> movies = body.getResults().stream()
                         .map(this::convertToMovieEntity)
                         .collect(Collectors.toList());
                     
-                    log.info("✅ Successfully converted {} movies", movies.size());
+                    log.info("Successfully converted {} movies", movies.size());
                     return movies;
                 } else {
-                    log.warn("⚠️ TMDB API returned empty results array");
+                    log.warn("TMDB API returned empty results array");
                 }
             } else {
-                log.warn("⚠️ TMDB API returned null results");
+                log.warn("TMDB API returned null results");
             }
         } else {
-            log.error("❌ TMDB API returned non-2xx status: {}", response.getStatusCode());
+            log.error("TMDB API returned non-2xx status: {}", response.getStatusCode());
         }
         
     } catch (Exception e) {
-        log.error("💥 Critical error fetching movies from TMDB for URL: {}", url, e);
+        log.error("Critical error fetching movies from TMDB for URL: {}", url, e);
         throw new RuntimeException("Failed to fetch movies from TMDB: " + e.getMessage(), e);
     }
     
@@ -284,12 +284,12 @@ private <T> ResponseEntity<T> makeTmdbRequest(String url, Class<T> responseType)
         headers.set("Authorization", "Bearer " + apiKey);
         HttpEntity<String> entity = new HttpEntity<>(headers);
         
-        log.info("🔄 Calling TMDB API: {}", url);
-        log.info("🔑 Headers: {}", headers);
+        log.info("Calling TMDB API: {}", url);
+        log.info("Headers: {}", headers);
         
         restTemplate.getInterceptors().add((request, body, execution) -> {
-            log.info("📤 Request URI: {}", request.getURI());
-            log.info("📤 Request Headers: {}", request.getHeaders());
+            log.info("Request URI: {}", request.getURI());
+            log.info("Request Headers: {}", request.getHeaders());
             return execution.execute(request, body);
         });
         
@@ -300,19 +300,19 @@ private <T> ResponseEntity<T> makeTmdbRequest(String url, Class<T> responseType)
             responseType
         );
         
-        log.info("📡 TMDB API Response Status: {}", response.getStatusCode());
-        log.info("📡 TMDB API Response Headers: {}", response.getHeaders());
+        log.info("TMDB API Response Status: {}", response.getStatusCode());
+        log.info("TMDB API Response Headers: {}", response.getHeaders());
         
         if (response.getBody() != null) {
-            log.info("📡 TMDB API Response Body type: {}", response.getBody().getClass().getSimpleName());
+            log.info("TMDB API Response Body type: {}", response.getBody().getClass().getSimpleName());
         }
         
         return response;
         
     } catch (Exception e) {
-        log.error("💥 Exception while calling TMDB API: {}", url, e);
-        log.error("💥 Exception type: {}", e.getClass().getName());
-        log.error("💥 Exception message: {}", e.getMessage());
+        log.error("Exception while calling TMDB API: {}", url, e);
+        log.error("Exception type: {}", e.getClass().getName());
+        log.error("Exception message: {}", e.getMessage());
         
         throw new RuntimeException("TMDB API request failed: " + e.getMessage(), e);
     }

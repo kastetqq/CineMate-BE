@@ -1,0 +1,68 @@
+package com.ratingapp.watchlist.controller;
+
+import java.security.Principal;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ratingapp.auth.entity.User;
+import com.ratingapp.auth.service.UserService;
+import com.ratingapp.watchlist.dto.MovieStatusRequest;
+import com.ratingapp.watchlist.enums.MovieStatus;
+import com.ratingapp.watchlist.service.MovieStatusService;
+
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/watchlist")
+@RequiredArgsConstructor
+public class MovieStatusController {
+
+    private final MovieStatusService movieStatusService;
+    private final UserService userService;
+
+    @PostMapping("/{movieId}/status")
+    public ResponseEntity<?> setStatus(
+        @PathVariable Long movieId,
+        @RequestBody MovieStatusRequest req,
+
+        Principal principal) {
+            User user = userService.getByEmail(principal.getName());
+            
+            movieStatusService.setStatus(movieId, user, req.getStatus());
+            
+            return ResponseEntity.ok().build();
+        }
+
+    @DeleteMapping("/{movieId}")
+    public ResponseEntity<?> deleteStatus(
+        @PathVariable Long movieId,
+        Principal principal) {
+            User user = userService.getByEmail(principal.getName());
+
+            movieStatusService.deleteStatus(movieId, user);
+
+            return ResponseEntity.ok().build();
+        }
+
+    @GetMapping("/all")
+    public ResponseEntity<?> getMyLists(
+        @RequestParam(required = false) MovieStatus status,
+        Principal principal
+    ) {
+    User user = userService.getByEmail(principal.getName());
+
+    if (status == null) {
+        return ResponseEntity.ok(movieStatusService.getUserLists(user));
+    }
+
+    return ResponseEntity.ok(movieStatusService.getMoviesByStatus(user, status));
+}
+}
