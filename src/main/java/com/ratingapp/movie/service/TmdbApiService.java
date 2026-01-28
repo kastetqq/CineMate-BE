@@ -177,7 +177,13 @@ private Movie convertToMovieEntity(TmdbMovieResponse tmdbMovie) {
     }
     
     if (tmdbMovie.getCredits() != null && tmdbMovie.getCredits().getCrew() != null) {
-        extractCrewMembers(tmdbMovie, movie);
+        tmdbMovie.getCredits().getCrew().stream()
+        .filter(crew -> "Director".equals(crew.getJob()))
+        .findFirst()
+        .ifPresent(director -> {
+            movie.setDirector(director.getName());
+            log.debug("Found director for movie {}: {}", movie.getTitle(), director.getName());
+        });
     }
     
     return movie;
