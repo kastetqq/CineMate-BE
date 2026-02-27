@@ -13,7 +13,6 @@
     <groupId>com.ratingapp</groupId>
     <artifactId>movie-rating-be</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <!-- Убрал packaging pom - теперь это обычный jar проект -->
     <packaging>jar</packaging>
     
     <name>movie-rating-be</name>
