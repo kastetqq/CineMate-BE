@@ -29,7 +29,7 @@ public class MovieService {
     private static final int MOVIES_PER_CATEGORY = 100;
     private static final int PAGES_TO_FETCH = 5;
     
-    @Scheduled(cron = "0 24 21 * * *")
+    @Scheduled(cron = "0 7 4 * * *")
     @Transactional
     public void refreshAllCategories() {
         log.info("Starting weekly refresh of all movie categories");
@@ -138,7 +138,6 @@ public class MovieService {
         
         movie.setPosterPath(dto.getPosterPath());
         movie.setGenreIds(dto.getGenreIds());
-        movie.setRuntime(dto.getRuntime());
     }
     
     private void setCategoryFlag(Movie movie, String category, boolean value) {
@@ -251,9 +250,11 @@ public class MovieService {
             .limit(limit)
             .map(c -> {
                 ActorDto actor = new ActorDto();
+                actor.setTmdbId(c.getTmdbId()); 
                 actor.setName(c.getName());
                 actor.setCharacter(c.getCharacter());
                 actor.setOrder(c.getOrder());
+                actor.setProfilePath(c.getProfilePath());
                 actor.setProfileUrl(imageBaseUrl + "/w185" + c.getProfilePath());
                 return actor;
             })
@@ -276,8 +277,10 @@ public class MovieService {
     
     private CrewDto convertToCrewDto(TmdbMovieDetailsDto.CrewDto tmdbCrew) {
         CrewDto dto = new CrewDto();
+        dto.setTmdbId(tmdbCrew.getTmdbId());
         dto.setName(tmdbCrew.getName());
         dto.setJob(tmdbCrew.getJob());
+        dto.setProfilePath(tmdbCrew.getProfilePath());
         dto.setProfileUrl(tmdbCrew.getProfilePath() != null ? 
             imageBaseUrl + "/w185" + tmdbCrew.getProfilePath() : null);
         return dto;

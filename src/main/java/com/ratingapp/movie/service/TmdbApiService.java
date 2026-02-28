@@ -38,7 +38,7 @@ public class TmdbApiService {
     
     public List<TmdbMovieDto> getTrendingMovies(int page) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/trending/movie/week")
-            .queryParam("language", "en-US")
+            .queryParam("language", "ru-RU")
             .queryParam("page", page)
             .toUriString();
         
@@ -50,7 +50,7 @@ public class TmdbApiService {
         LocalDate threeMonthsAgo = now.minusMonths(3);
         
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
-            .queryParam("language", "en-US")
+            .queryParam("language", "ru-RU")
             .queryParam("page", page)
             .queryParam("sort_by", "release_date.desc")
             .queryParam("primary_release_date.gte", threeMonthsAgo)
@@ -63,7 +63,7 @@ public class TmdbApiService {
     
     public List<TmdbMovieDto> getTopRatedMovies(int page) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/top_rated")
-            .queryParam("language", "en-US")
+            .queryParam("language", "ru-RU")
             .queryParam("page", page)
             .toUriString();
         
@@ -72,7 +72,7 @@ public class TmdbApiService {
     
     public List<TmdbMovieDto> getUpcomingMovies(int page) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/upcoming")
-            .queryParam("language", "en-US")
+            .queryParam("language", "ru-RU")
             .queryParam("page", page)
             .toUriString();
         

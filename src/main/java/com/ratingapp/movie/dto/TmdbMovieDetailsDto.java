@@ -64,6 +64,7 @@ public class TmdbMovieDetailsDto {
     
     @Data
     public static class CastDto {
+        private Long tmdbId;
         private String name;
         private String character;
         private Integer order;
@@ -74,6 +75,7 @@ public class TmdbMovieDetailsDto {
     
     @Data
     public static class CrewDto {
+        private Long tmdbId;
         private String name;
         private String job;
         private String department;

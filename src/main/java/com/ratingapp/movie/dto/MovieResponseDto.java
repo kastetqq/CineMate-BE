@@ -17,7 +17,6 @@ public class MovieResponseDto {
     private LocalDate releaseDate;
     private String posterUrl;
     private List<String> genres;
-    private Integer runtime;
 
     public MovieResponseDto(Movie movie, String imageBaseUrl){
         this.id = movie.getId().toString();
@@ -32,6 +31,5 @@ public class MovieResponseDto {
         
         this.genres = movie.getGenreNames();
 
-        this.runtime = movie.getRuntime();
     }
 }
