@@ -1,10 +1,10 @@
 package com.ratingapp.watchlist.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.ratingapp.auth.entity.User;
-import com.ratingapp.movie.entity.Movie;
 import com.ratingapp.watchlist.enums.MovieStatus;
 
 import jakarta.persistence.Entity;
@@ -25,6 +25,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserMovieStatus {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -32,8 +33,12 @@ public class UserMovieStatus {
     @ManyToOne(optional = false)
     private User user;
 
-    @ManyToOne(optional = false)
-    private Movie movie;
+    private Long tmdbId;
+
+    private String title;
+    private String posterPath;
+    private Double voteAverage;
+    private LocalDate releaseDate;
 
     @Enumerated(EnumType.STRING)
     private MovieStatus status;

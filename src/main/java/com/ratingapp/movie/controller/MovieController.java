@@ -1,82 +1,69 @@
 package com.ratingapp.movie.controller;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.ratingapp.movie.dto.MovieDetailsResponse;
-import com.ratingapp.movie.dto.MovieResponse;
-import com.ratingapp.movie.entity.Movie;
+import com.ratingapp.movie.dto.MovieDetailsResponseDto;
+import com.ratingapp.movie.dto.MovieResponseDto;
 import com.ratingapp.movie.service.MovieService;
-import com.ratingapp.movie.service.TmdbApiService;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/movies")
 @RequiredArgsConstructor
-
+@Slf4j
 public class MovieController {
     
     private final MovieService movieService;
-    private final TmdbApiService tmdbApiService;
-
-    @GetMapping("/popular")
-    public ResponseEntity<List<MovieResponse>> getPopularMovies(@RequestParam(defaultValue = "1") int page) {
-        List<Movie> movies = movieService.getPopularMovies(page);
-        return ResponseEntity.ok(convertToResponse(movies));
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<List<MovieResponse>> searchMovies(
-        @RequestParam String query, 
-        @RequestParam(defaultValue = "1") int page) {
-        List<Movie> movies = movieService.searchMovies(query, page);
-        return ResponseEntity.ok(convertToResponse(movies));
-    }
-
-    @GetMapping("/new-releases")
-    public ResponseEntity<List<MovieResponse>> getNewReleases(
-        @RequestParam(defaultValue = "1") int page) {
-        List<Movie> movies = movieService.getNewReleases(page);
-        return ResponseEntity.ok(convertToResponse(movies));
-    }
-
-    @GetMapping("/recommendations")
-    public ResponseEntity<List<MovieResponse>> getRecommendedMovies(
-        @RequestParam(defaultValue = "1") int page) {
-        List<Movie> movies = movieService.getRecommendedMovies(page);
-        return ResponseEntity.ok(convertToResponse(movies));
-    }
     
     @GetMapping("/trending")
-    public ResponseEntity<List<MovieResponse>> getTrendingMovies(@RequestParam(defaultValue = "1") int page) {
-        List<Movie> movies = movieService.getTrendingMovies(page);
-        return ResponseEntity.ok(convertToResponse(movies));
+    public ResponseEntity<List<MovieResponseDto>> getTrendingMovies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        List<MovieResponseDto> movies = movieService.getTrendingMovies(page, size);
+        return ResponseEntity.ok(movies);
     }
     
-    @GetMapping("/{id}")
-    public ResponseEntity<MovieDetailsResponse> getMovieDetails(@PathVariable Long id) {
-        MovieService.MovieDetails details = movieService.getMovieDetails(id);
+    @GetMapping("/new-releases")
+    public ResponseEntity<List<MovieResponseDto>> getNewReleases(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         
-        MovieDetailsResponse response = new MovieDetailsResponse(
-            details.getMovie(), 
-            details.getActors(), 
-            tmdbApiService.getImageBaseUrl()
-        );
-        
-        return ResponseEntity.ok(response);
+        List<MovieResponseDto> movies = movieService.getNewReleases(page, size);
+        return ResponseEntity.ok(movies);
     }
     
-    private List<MovieResponse> convertToResponse(List<Movie> movies) {
-        return movies.stream()
-            .map(movie -> new MovieResponse(movie, tmdbApiService.getImageBaseUrl()))
-            .collect(Collectors.toList());
+    @GetMapping("/top-rated")
+    public ResponseEntity<List<MovieResponseDto>> getTopRatedMovies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        List<MovieResponseDto> movies = movieService.getTopRatedMovies(page, size);
+        return ResponseEntity.ok(movies);
+    }
+    
+    @GetMapping("/upcoming")
+    public ResponseEntity<List<MovieResponseDto>> getUpcomingMovies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        List<MovieResponseDto> movies = movieService.getUpcomingMovies(page, size);
+        return ResponseEntity.ok(movies);
+    }
+    
+    @GetMapping("/{tmdbId}")
+    public ResponseEntity<MovieDetailsResponseDto> getMovieDetails(
+            @PathVariable Long tmdbId) {
+        
+        try {
+            MovieDetailsResponseDto details = movieService.getMovieDetails(tmdbId);
+            return ResponseEntity.ok(details);
+        } catch (Exception e) {
+            log.error("Error getting movie details for id: {}", tmdbId, e);
+            return ResponseEntity.notFound().build();
+        }
     }
 }
