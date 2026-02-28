@@ -2,10 +2,12 @@ package com.ratingapp.movie.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
+import com.ratingapp.movie.enums.Genre;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,8 +15,15 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "movies")
+@Table(name = "movies", indexes = {
+    @Index(name = "idx_tmdb_id", columnList = "tmdbId", unique = true),
+    @Index(name = "idx_top_rated", columnList = "topRated"),
+    @Index(name = "idx_trending", columnList = "trending"),
+    @Index(name = "idx_new_release", columnList = "newRelease"),
+    @Index(name = "idx_upcoming", columnList = "upcoming"),
+})
 @Data
+@NoArgsConstructor
 public class Movie {
     
     @Id
@@ -27,20 +36,11 @@ public class Movie {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(name = "original_title", length = 255)
-    private String originalTitle;
-
     @Column(name = "overview", length = 2000)
     private String overview;
 
-    @Column(name = "popularity")
-    private Double popularity;
-
     @Column(name = "vote_average")
     private Double voteAverage;
-
-    @Column(name = "vote_count")
-    private Integer voteCount;
 
     @Column(name = "release_date")
     private LocalDate releaseDate;
@@ -51,46 +51,20 @@ public class Movie {
     @Column(name = "poster_path", length = 500)
     private String posterPath;
 
-    @Column(name = "backdrop_path", length = 500)
-    private String backdropPath;
+    @Column(columnDefinition = "integer[]")
+    private List<Integer> genreIds = new ArrayList<>();
 
-    @Column(name = "status", length = 50)
-    private String status;
+    @Column(name = "top_rated", nullable = false)
+    private boolean topRated = false;
 
-    @Column(name = "original_language", length = 10)
-    private String originalLanguage;
+    @Column(nullable = false)
+    private boolean trending = false;
 
-    @Column(name = "budget", precision = 15, scale = 2)
-    private BigDecimal budget;
+    @Column(name = "new_release", nullable = false)
+    private boolean newRelease = false;
 
-    @Column(name = "revenue", precision = 15, scale = 2)
-    private BigDecimal revenue;
-
-    @Column(length = 255)
-    private String director;
-
-    @Column(length = 255)
-    private String screenwriter;
-
-    @Column(length = 255)
-    private String producer;
-
-    @Column(length = 255)
-    private String composer;
-
-    @Column(length = 255)
-    private String cinematographer;
-
-    @Column(length = 255)
-    private String editor;
-
-    @ElementCollection
-    @CollectionTable(name = "movie_genres", joinColumns = @JoinColumn(name = "movie_id"))
-    @Column(name = "genre_name")
-    private List<String> genres = new ArrayList<>();
-
-    @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Actor> actors = new ArrayList<>();
+    @Column(nullable = false)
+    private boolean upcoming = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -99,4 +73,12 @@ public class Movie {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public List<String> getGenreNames() {
+        return Genre.toDisplayNames(this.genreIds);
+    }
+
+    public void setGenresFromList(List<Genre> genres) {
+        this.genreIds = Genre.toTmdbIds(genres);
+    }
 }

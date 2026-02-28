@@ -1,7 +1,7 @@
 package com.ratingapp.watchlist.dto;
 
 import java.time.LocalDate;
-import java.util.UUID;
+import java.time.LocalDateTime;
 
 import com.ratingapp.watchlist.enums.MovieStatus;
 
@@ -14,11 +14,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class MovieDto {
 
-    private UUID id;
+    private Long tmdbId;
     private String title;
-    private String posterPath;
+    private Double voteAverage;
     private LocalDate releaseDate;
+    private String posterPath;
     private MovieStatus status;
-
+    private LocalDateTime addedDate;
     
 }
