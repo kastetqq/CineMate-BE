@@ -16,7 +16,7 @@ public interface MovieRepository extends JpaRepository<Movie, UUID> {
     Optional<Movie> findByTmdbId(Long tmdbId);
 
     List<Movie> findByTopRatedTrueOrderByVoteAverageDesc(Pageable pageable);
-    List<Movie> findByTrendingTrueOrderByPopularityDesc(Pageable pageable);
+    List<Movie> findByTrendingTrueOrderByVoteAverageDesc(Pageable pageable);
     List<Movie> findByNewReleaseTrueOrderByReleaseDateDesc(Pageable pageable);
     List<Movie> findByUpcomingTrueOrderByReleaseDateDesc(Pageable pageable);
 

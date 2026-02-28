@@ -157,7 +157,7 @@ public class MovieService {
     
     public List<MovieResponseDto> getTrendingMovies(int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
-        return movieRepository.findByTrendingTrueOrderByPopularityDesc(pageRequest)
+        return movieRepository.findByTrendingTrueOrderByVoteAverageDesc(pageRequest)
             .stream()
             .map(movie -> new MovieResponseDto(movie, imageBaseUrl))
             .collect(Collectors.toList());
