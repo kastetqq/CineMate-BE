@@ -29,7 +29,7 @@ public class MovieService {
     private static final int MOVIES_PER_CATEGORY = 100;
     private static final int PAGES_TO_FETCH = 5;
     
-    @Scheduled(cron = "0 15 3 * * *")
+    @Scheduled(cron = "0 24 21 * * *")
     @Transactional
     public void refreshAllCategories() {
         log.info("Starting weekly refresh of all movie categories");

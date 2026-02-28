@@ -82,8 +82,4 @@ public class TmdbMovieDetailsDto {
         private String profilePath;
     }
 
-    public Object getMovie() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getMovie'");
-    }
 }
