@@ -7,11 +7,11 @@ import lombok.Data;
 
 @Data
 public class MovieDetailsResponseDto {
-
     private Long tmdbId;
     private String title;
     private String overview;
     private Double voteAverage;
+    private Double popularity;
     private Integer runtime;
     private LocalDate releaseDate;
 
@@ -26,7 +26,6 @@ public class MovieDetailsResponseDto {
     private String language;
 
     private List<ActorDto> cast; 
-
     private List<CrewDto> directors;
     private List<CrewDto> writers;
     private List<CrewDto> producers;

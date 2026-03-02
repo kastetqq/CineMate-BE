@@ -33,14 +33,17 @@ public class Movie {
     @Column(unique = true, nullable = false)
     private Long tmdbId;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String title;
 
-    @Column(name = "overview", length = 2000)
+    @Column(length = 2000)
     private String overview;
 
     @Column(name = "vote_average")
     private Double voteAverage;
+
+    @Column(name = "popularity")
+    private Double popularity;
 
     @Column(name = "release_date")
     private LocalDate releaseDate;
@@ -48,7 +51,7 @@ public class Movie {
     @Column(name = "runtime")
     private Integer runtime;
 
-    @Column(name = "poster_path", length = 500)
+    @Column(name = "poster_path")
     private String posterPath;
 
     @Column(columnDefinition = "integer[]")
