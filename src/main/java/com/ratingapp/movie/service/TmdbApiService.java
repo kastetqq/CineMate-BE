@@ -53,8 +53,8 @@ public class TmdbApiService {
             .queryParam("language", "ru-RU")
             .queryParam("page", page)
             .queryParam("sort_by", "popularity.desc")
-            .queryParam("primary_release_date.gte", now)
-            .queryParam("primary_release_date.lte", sixMonthsAgo)
+            .queryParam("primary_release_date.gte", sixMonthsAgo)
+            .queryParam("primary_release_date.lte", now)
             .queryParam("vote_count.gte", 50)
             .toUriString();
         
