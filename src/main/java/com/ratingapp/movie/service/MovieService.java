@@ -118,7 +118,7 @@ public class MovieService {
         
         LocalDate today = LocalDate.now();
         LocalDate minDate = today.plusDays(16);
-        LocalDate maxDate = today.plusMonths(3);
+        LocalDate maxDate = today.plusMonths(6);
         
         List<TmdbMovieDto> validMovies = allMovies.stream()
             .filter(this::isMovieValid)

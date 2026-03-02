@@ -72,7 +72,7 @@ public class TmdbApiService {
     
     public List<TmdbMovieDto> getUpcomingMovies(int page) {
         LocalDate sixteenDays = LocalDate.now().plusDays(16);
-        LocalDate sixMonthsLater = sixteenDays.plusMonths(6);
+        LocalDate sixMonthsLater = LocalDate.now().plusMonths(6);
         
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
             .queryParam("language", "ru-RU")
