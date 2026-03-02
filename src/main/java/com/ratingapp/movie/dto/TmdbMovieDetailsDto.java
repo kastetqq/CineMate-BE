@@ -14,6 +14,9 @@ public class TmdbMovieDetailsDto {
     @JsonProperty("vote_average")
     private Double voteAverage;
     
+    @JsonProperty("popularity")
+    private Double popularity;
+    
     @JsonProperty("vote_count")
     private Integer voteCount;
     
@@ -43,6 +46,7 @@ public class TmdbMovieDetailsDto {
     
     @Data
     public static class GenreDto {
+        private Long id;
         private String name;
     }
     
@@ -64,6 +68,7 @@ public class TmdbMovieDetailsDto {
     
     @Data
     public static class CastDto {
+        @JsonProperty("id")
         private Long tmdbId;
         private String name;
         private String character;
@@ -75,6 +80,7 @@ public class TmdbMovieDetailsDto {
     
     @Data
     public static class CrewDto {
+        @JsonProperty("id")
         private Long tmdbId;
         private String name;
         private String job;
@@ -83,5 +89,4 @@ public class TmdbMovieDetailsDto {
         @JsonProperty("profile_path")
         private String profilePath;
     }
-
 }

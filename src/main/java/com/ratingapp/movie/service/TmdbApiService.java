@@ -47,15 +47,15 @@ public class TmdbApiService {
     
     public List<TmdbMovieDto> getNewReleases(int page) {
         LocalDate now = LocalDate.now();
-        LocalDate threeMonthsAgo = now.minusMonths(3);
+        LocalDate sixMonthsAgo = now.minusMonths(6);
         
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
             .queryParam("language", "ru-RU")
             .queryParam("page", page)
-            .queryParam("sort_by", "release_date.desc")
-            .queryParam("primary_release_date.gte", threeMonthsAgo)
+            .queryParam("sort_by", "popularity.desc")
+            .queryParam("primary_release_date.gte", sixMonthsAgo)
             .queryParam("primary_release_date.lte", now)
-            .queryParam("with_release_type", "2|3")
+            .queryParam("vote_count.gte", 50)
             .toUriString();
         
         return fetchMovieList(url);
@@ -71,9 +71,17 @@ public class TmdbApiService {
     }
     
     public List<TmdbMovieDto> getUpcomingMovies(int page) {
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/upcoming")
+        LocalDate tenDays = LocalDate.now().plusDays(10);
+        LocalDate threeMonthsLater = tenDays.plusMonths(3);
+        
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
             .queryParam("language", "ru-RU")
             .queryParam("page", page)
+            // проверить что вообще приходит в этом запросе и от него сделать сорт адекватный
+            .queryParam("sort_by", "release_date.asc")
+            .queryParam("primary_release_date.gte", tenDays)
+            .queryParam("primary_release_date.lte", threeMonthsLater)
+            
             .toUriString();
         
         return fetchMovieList(url);

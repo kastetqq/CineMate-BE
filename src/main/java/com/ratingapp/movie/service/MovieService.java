@@ -29,10 +29,10 @@ public class MovieService {
     private static final int MOVIES_PER_CATEGORY = 100;
     private static final int PAGES_TO_FETCH = 5;
     
-    @Scheduled(cron = "0 0 3 1 * *")
+    @Scheduled(cron = "0 0 3 * * *")
     @Transactional
     public void refreshAllCategories() {
-        log.info("Starting weekly refresh of all movie categories");
+        log.info("Starting daily refresh of all movie categories");
         
         refreshTrendingMovies();
         refreshNewReleases();
@@ -41,7 +41,7 @@ public class MovieService {
         
         cleanupOrphanedMovies();
         
-        log.info("Weekly refresh completed");
+        log.info("Daily refresh completed");
     }
     
     @Transactional
@@ -51,6 +51,11 @@ public class MovieService {
         
         List<TmdbMovieDto> movies = fetchMultiplePages(1, PAGES_TO_FETCH, 
             page -> tmdbApiService.getTrendingMovies(page));
+        
+        movies = movies.stream()
+            .filter(this::isMovieValid)
+            .filter(m -> hasOnlyCyrillicOrLatin(m.getTitle()))
+            .collect(Collectors.toList());
         
         processMovies(movies, "trending");
     }
@@ -63,6 +68,12 @@ public class MovieService {
         List<TmdbMovieDto> movies = fetchMultiplePages(1, PAGES_TO_FETCH, 
             page -> tmdbApiService.getNewReleases(page));
         
+        movies = movies.stream()
+            .filter(this::isMovieValid)
+            .filter(m -> m.getVoteAverage() != null && m.getVoteAverage() > 0)
+            .filter(m -> hasOnlyCyrillicOrLatin(m.getTitle()))
+            .collect(Collectors.toList());
+        
         processMovies(movies, "newRelease");
     }
     
@@ -73,6 +84,10 @@ public class MovieService {
         
         List<TmdbMovieDto> movies = fetchMultiplePages(1, PAGES_TO_FETCH, 
             page -> tmdbApiService.getTopRatedMovies(page));
+        
+        movies = movies.stream()
+            .filter(this::isMovieValid)
+            .collect(Collectors.toList());
         
         processMovies(movies, "topRated");
     }
@@ -85,21 +100,64 @@ public class MovieService {
         List<TmdbMovieDto> movies = fetchMultiplePages(1, PAGES_TO_FETCH, 
             page -> tmdbApiService.getUpcomingMovies(page));
         
+        LocalDate today = LocalDate.now();
+        
+        movies = movies.stream()
+            .filter(this::isMovieValid)
+            .filter(m -> {
+                if (m.getReleaseDate() == null || m.getReleaseDate().isEmpty()) {
+                    return false;
+                }
+                try {
+                    LocalDate releaseDate = LocalDate.parse(m.getReleaseDate());
+                    return releaseDate.isAfter(today);
+                } catch (Exception e) {
+                    return false;
+                }
+            })
+            .filter(m -> hasOnlyCyrillicOrLatin(m.getTitle()))
+            .collect(Collectors.toList());
+        
         processMovies(movies, "upcoming");
+    }
+    
+    private boolean isMovieValid(TmdbMovieDto movie) {
+        return movie != null &&
+               movie.getTitle() != null && !movie.getTitle().trim().isEmpty() &&
+               movie.getOverview() != null && !movie.getOverview().trim().isEmpty() &&
+               movie.getPosterPath() != null && !movie.getPosterPath().trim().isEmpty();
+    }
+
+    private boolean hasOnlyCyrillicOrLatin(String title) {
+        if (title == null) return false;
+        return title.matches("[а-яА-ЯёЁa-zA-Z0-9\\s\\-.,!?:;\"'()]+");
     }
     
     private List<TmdbMovieDto> fetchMultiplePages(int startPage, int numberOfPages, PageFetcher pageFetcher) {
         List<TmdbMovieDto> allMovies = new ArrayList<>();
+        Set<Long> seenIds = new HashSet<>();
+        
         for (int i = 0; i < numberOfPages; i++) {
             try {
                 List<TmdbMovieDto> page = pageFetcher.fetch(startPage + i);
-                allMovies.addAll(page);
-                if (allMovies.size() >= MOVIES_PER_CATEGORY) break;
+                
+                List<TmdbMovieDto> uniqueMovies = page.stream()
+                    .filter(m -> m.getId() != null)
+                    .filter(m -> !seenIds.contains(m.getId()))
+                    .peek(m -> seenIds.add(m.getId()))
+                    .collect(Collectors.toList());
+                
+                allMovies.addAll(uniqueMovies);
+                
+                if (allMovies.size() >= MOVIES_PER_CATEGORY) {
+                    allMovies = allMovies.stream().limit(MOVIES_PER_CATEGORY).collect(Collectors.toList());
+                    break;
+                }
             } catch (Exception e) {
                 log.error("Failed to fetch page {}", startPage + i, e);
             }
         }
-        return allMovies.stream().limit(MOVIES_PER_CATEGORY).collect(Collectors.toList());
+        return allMovies;
     }
     
     @Transactional
@@ -131,9 +189,14 @@ public class MovieService {
         movie.setTitle(dto.getTitle());
         movie.setOverview(dto.getOverview());
         movie.setVoteAverage(dto.getVoteAverage());
+        movie.setPopularity(dto.getPopularity());
         
         if (dto.getReleaseDate() != null && !dto.getReleaseDate().isEmpty()) {
-            movie.setReleaseDate(LocalDate.parse(dto.getReleaseDate()));
+            try {
+                movie.setReleaseDate(LocalDate.parse(dto.getReleaseDate()));
+            } catch (Exception e) {
+                log.debug("Invalid release date for movie {}: {}", dto.getId(), dto.getReleaseDate());
+            }
         }
         
         movie.setPosterPath(dto.getPosterPath());
@@ -202,11 +265,16 @@ public class MovieService {
         dto.setTitle(tmdb.getTitle());
         dto.setOverview(tmdb.getOverview());
         dto.setVoteAverage(tmdb.getVoteAverage());
+        dto.setPopularity(tmdb.getPopularity());
         dto.setRuntime(tmdb.getRuntime());
         
         if (tmdb.getReleaseDate() != null) {
-            LocalDate date = LocalDate.parse(tmdb.getReleaseDate());
-            dto.setReleaseDate(date);
+            try {
+                LocalDate date = LocalDate.parse(tmdb.getReleaseDate());
+                dto.setReleaseDate(date);
+            } catch (Exception e) {
+                log.debug("Invalid release date format: {}", tmdb.getReleaseDate());
+            }
         }
         
         dto.setPosterUrl(tmdb.getPosterPath() != null ? 
@@ -214,54 +282,69 @@ public class MovieService {
         dto.setBackdropUrl(tmdb.getBackdropPath() != null ? 
             imageBaseUrl + "/w1280" + tmdb.getBackdropPath() : null);
         
-        dto.setGenres(tmdb.getGenres().stream()
-            .map(TmdbMovieDetailsDto.GenreDto::getName)
-            .collect(Collectors.toList()));
+        if (tmdb.getGenres() != null) {
+            dto.setGenres(tmdb.getGenres().stream()
+                .map(TmdbMovieDetailsDto.GenreDto::getName)
+                .collect(Collectors.toList()));
+        }
         
         dto.setBudget(formatCurrency(tmdb.getBudget()));
         dto.setRevenue(formatCurrency(tmdb.getRevenue()));
         
-        dto.setCountries(tmdb.getProductionCountries().stream()
-            .map(TmdbMovieDetailsDto.ProductionCountryDto::getName)
-            .collect(Collectors.toList()));
+        if (tmdb.getProductionCountries() != null) {
+            dto.setCountries(tmdb.getProductionCountries().stream()
+                .map(TmdbMovieDetailsDto.ProductionCountryDto::getName)
+                .collect(Collectors.toList()));
+        }
         
-        if (!tmdb.getSpokenLanguages().isEmpty()) {
+        if (tmdb.getSpokenLanguages() != null && !tmdb.getSpokenLanguages().isEmpty()) {
             dto.setLanguage(tmdb.getSpokenLanguages().get(0).getName());
         }
         
-        dto.setCast(extractTopActors(tmdb.getCredits().getCast(), 4));
-        
-        List<TmdbMovieDetailsDto.CrewDto> allCrew = tmdb.getCredits().getCrew();
-        dto.setDirectors(filterCrewByJob(allCrew, "Director"));
-        dto.setWriters(filterCrewByMultipleJobs(allCrew, 
-            List.of("Writer", "Screenplay", "Novel", "Story")));
-        dto.setProducers(filterCrewByJob(allCrew, "Producer"));
-        dto.setComposers(filterCrewByJob(allCrew, "Original Music Composer"));
-        dto.setCinematographers(filterCrewByJob(allCrew, "Director of Photography"));
-        dto.setEditors(filterCrewByJob(allCrew, "Editor"));
+        if (tmdb.getCredits() != null) {
+            if (tmdb.getCredits().getCast() != null) {
+                dto.setCast(extractTopActors(tmdb.getCredits().getCast(), 4));
+            }
+            
+            if (tmdb.getCredits().getCrew() != null) {
+                List<TmdbMovieDetailsDto.CrewDto> allCrew = tmdb.getCredits().getCrew();
+                dto.setDirectors(filterCrewByJob(allCrew, "Director"));
+                dto.setWriters(filterCrewByMultipleJobs(allCrew, 
+                    List.of("Writer", "Screenplay", "Novel", "Story")));
+                dto.setProducers(filterCrewByJob(allCrew, "Producer"));
+                dto.setComposers(filterCrewByJob(allCrew, "Original Music Composer"));
+                dto.setCinematographers(filterCrewByJob(allCrew, "Director of Photography"));
+                dto.setEditors(filterCrewByJob(allCrew, "Editor"));
+            }
+        }
         
         return dto;
     }
     
     private List<ActorDto> extractTopActors(List<TmdbMovieDetailsDto.CastDto> cast, int limit) {
+        if (cast == null) return Collections.emptyList();
+        
         return cast.stream()
-            .filter(c -> c.getProfilePath() != null)
+            .filter(c -> c.getName() != null)
             .sorted(Comparator.comparing(TmdbMovieDetailsDto.CastDto::getOrder))
             .limit(limit)
             .map(c -> {
                 ActorDto actor = new ActorDto();
-                actor.setTmdbId(c.getTmdbId()); 
+                actor.setTmdbId(c.getTmdbId());
                 actor.setName(c.getName());
                 actor.setCharacter(c.getCharacter());
                 actor.setOrder(c.getOrder());
                 actor.setProfilePath(c.getProfilePath());
-                actor.setProfileUrl(imageBaseUrl + "/w185" + c.getProfilePath());
+                actor.setProfileUrl(c.getProfilePath() != null ? 
+                    imageBaseUrl + "/w185" + c.getProfilePath() : null);
                 return actor;
             })
             .collect(Collectors.toList());
     }
     
     private List<CrewDto> filterCrewByJob(List<TmdbMovieDetailsDto.CrewDto> crew, String job) {
+        if (crew == null) return Collections.emptyList();
+        
         return crew.stream()
             .filter(c -> job.equals(c.getJob()))
             .map(this::convertToCrewDto)
@@ -269,6 +352,8 @@ public class MovieService {
     }
     
     private List<CrewDto> filterCrewByMultipleJobs(List<TmdbMovieDetailsDto.CrewDto> crew, List<String> jobs) {
+        if (crew == null) return Collections.emptyList();
+        
         return crew.stream()
             .filter(c -> jobs.contains(c.getJob()))
             .map(this::convertToCrewDto)
