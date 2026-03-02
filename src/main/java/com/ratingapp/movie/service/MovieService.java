@@ -27,9 +27,10 @@ public class MovieService {
     private String imageBaseUrl;
     
     private static final int MOVIES_PER_CATEGORY = 100;
+    private static final int UPCOMING_MOVIES_LIMIT = 5;
     private static final int PAGES_TO_FETCH = 5;
     
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 52 16 * * *")
     @Transactional
     public void refreshAllCategories() {
         log.info("Starting daily refresh of all movie categories");
@@ -54,7 +55,8 @@ public class MovieService {
         
         movies = movies.stream()
             .filter(this::isMovieValid)
-            .filter(m -> hasOnlyCyrillicOrLatin(m.getTitle()))
+            .filter(m -> hasValidTitle(m.getTitle()))
+            .limit(MOVIES_PER_CATEGORY)
             .collect(Collectors.toList());
         
         processMovies(movies, "trending");
@@ -71,7 +73,8 @@ public class MovieService {
         movies = movies.stream()
             .filter(this::isMovieValid)
             .filter(m -> m.getVoteAverage() != null && m.getVoteAverage() > 0)
-            .filter(m -> hasOnlyCyrillicOrLatin(m.getTitle()))
+            .filter(m -> hasValidTitle(m.getTitle()))
+            .limit(MOVIES_PER_CATEGORY)
             .collect(Collectors.toList());
         
         processMovies(movies, "newRelease");
@@ -87,6 +90,7 @@ public class MovieService {
         
         movies = movies.stream()
             .filter(this::isMovieValid)
+            .limit(MOVIES_PER_CATEGORY)
             .collect(Collectors.toList());
         
         processMovies(movies, "topRated");
@@ -97,12 +101,26 @@ public class MovieService {
         log.info("Refreshing upcoming movies");
         movieRepository.resetUpcomingFlag();
         
-        List<TmdbMovieDto> movies = fetchMultiplePages(1, PAGES_TO_FETCH, 
-            page -> tmdbApiService.getUpcomingMovies(page));
+        List<TmdbMovieDto> allMovies = new ArrayList<>();
+        int page = 1;
+        int maxPages = 10;
+        
+        while (allMovies.size() < UPCOMING_MOVIES_LIMIT * 3 && page <= maxPages) {
+            try {
+                List<TmdbMovieDto> movies = tmdbApiService.getUpcomingMovies(page);
+                allMovies.addAll(movies);
+                page++;
+            } catch (Exception e) {
+                log.error("Failed to fetch upcoming movies page {}", page, e);
+                page++;
+            }
+        }
         
         LocalDate today = LocalDate.now();
+        LocalDate minDate = today.plusDays(16);
+        LocalDate maxDate = today.plusMonths(3);
         
-        movies = movies.stream()
+        List<TmdbMovieDto> validMovies = allMovies.stream()
             .filter(this::isMovieValid)
             .filter(m -> {
                 if (m.getReleaseDate() == null || m.getReleaseDate().isEmpty()) {
@@ -110,15 +128,23 @@ public class MovieService {
                 }
                 try {
                     LocalDate releaseDate = LocalDate.parse(m.getReleaseDate());
-                    return releaseDate.isAfter(today);
+                    return !releaseDate.isBefore(minDate) && !releaseDate.isAfter(maxDate);
                 } catch (Exception e) {
                     return false;
                 }
             })
-            .filter(m -> hasOnlyCyrillicOrLatin(m.getTitle()))
+            .filter(m -> hasValidTitle(m.getTitle()))
+            .sorted((m1, m2) -> {
+                double pop1 = m1.getPopularity() != null ? m1.getPopularity() : 0;
+                double pop2 = m2.getPopularity() != null ? m2.getPopularity() : 0;
+                return Double.compare(pop2, pop1);
+            })
+            .limit(UPCOMING_MOVIES_LIMIT)
             .collect(Collectors.toList());
         
-        processMovies(movies, "upcoming");
+        log.info("Found {} upcoming movies in date range {} to {}", validMovies.size(), minDate, maxDate);
+        
+        processMovies(validMovies, "upcoming");
     }
     
     private boolean isMovieValid(TmdbMovieDto movie) {
@@ -128,8 +154,15 @@ public class MovieService {
                movie.getPosterPath() != null && !movie.getPosterPath().trim().isEmpty();
     }
 
-    private boolean hasOnlyCyrillicOrLatin(String title) {
-        if (title == null) return false;
+    private boolean hasValidTitle(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            return false;
+        }
+        
+        if (title.matches("^\\d+$")) {
+            return false;
+        }
+        
         return title.matches("[а-яА-ЯёЁa-zA-Z0-9\\s\\-.,!?:;\"'()]+");
     }
     

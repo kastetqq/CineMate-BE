@@ -46,15 +46,15 @@ public class TmdbApiService {
     }
     
     public List<TmdbMovieDto> getNewReleases(int page) {
-        LocalDate now = LocalDate.now();
-        LocalDate sixMonthsAgo = now.minusMonths(6);
+        LocalDate sixMonthsAgo = LocalDate.now().plusDays(16);
+        LocalDate endDate = LocalDate.now().plusMonths(6);
         
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
             .queryParam("language", "ru-RU")
             .queryParam("page", page)
             .queryParam("sort_by", "popularity.desc")
             .queryParam("primary_release_date.gte", sixMonthsAgo)
-            .queryParam("primary_release_date.lte", now)
+            .queryParam("primary_release_date.lte", endDate)
             .queryParam("vote_count.gte", 50)
             .toUriString();
         
@@ -77,11 +77,9 @@ public class TmdbApiService {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
             .queryParam("language", "ru-RU")
             .queryParam("page", page)
-            // проверить что вообще приходит в этом запросе и от него сделать сорт адекватный
-            .queryParam("sort_by", "release_date.asc")
+            .queryParam("sort_by", "popularity.desc")
             .queryParam("primary_release_date.gte", tenDays)
             .queryParam("primary_release_date.lte", threeMonthsLater)
-            
             .toUriString();
         
         return fetchMovieList(url);
