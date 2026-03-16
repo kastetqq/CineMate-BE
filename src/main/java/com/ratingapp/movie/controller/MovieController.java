@@ -54,7 +54,7 @@ public class MovieController {
         return ResponseEntity.ok(movies);
     }
     
-    @GetMapping("/all")
+    @GetMapping("/list/all")
     public ResponseEntity<List<MovieResponseDto>> getAllMovies() {
         log.info("Fetching all movies from all categories");
         List<MovieResponseDto> movies = movieService.getAllMovies();
