@@ -20,6 +20,9 @@ public interface MovieRepository extends JpaRepository<Movie, UUID> {
     List<Movie> findByNewReleaseTrueOrderByReleaseDateDesc(Pageable pageable);
     List<Movie> findByUpcomingTrueOrderByReleaseDateDesc(Pageable pageable);
 
+    @Query("SELECT DISTINCT m FROM Movie m WHERE m.trending = true OR m.newRelease = true OR m.topRated = true OR m.upcoming = true")
+    List<Movie> findAllMoviesInCategories();
+
     @Modifying
     @Query("UPDATE Movie m SET m.topRated = false")
     void resetTopRatedFlag();
