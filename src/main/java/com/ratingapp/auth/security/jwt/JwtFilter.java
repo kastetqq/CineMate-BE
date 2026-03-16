@@ -12,9 +12,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import com.ratingapp.auth.entity.User;
+import com.ratingapp.auth.repository.UserRepository;
+import com.ratingapp.auth.security.CustomUserDetails;
 import com.ratingapp.auth.security.CustomUserServiceImpl;
-
+import com.ratingapp.auth.service.UserService;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +27,7 @@ public class JwtFilter extends OncePerRequestFilter {
     
     private final JwtService jwtService;
     private final CustomUserServiceImpl customUserService;
+    private final UserRepository userRepository;
 
     private final List<String> allowedOrigins = Arrays.asList(
         "http://localhost:3000"
@@ -46,11 +49,27 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = getTokenFromRequest(request);
             
             if (token != null && jwtService.validateJwtToken(token) && jwtService.isAccessToken(token)) {
-                setAuthenticationToSecurityContextHolder(token, request);
+                String email = jwtService.getEmailFromToken(token);
+                UserDetails userDetails = customUserService.loadUserByUsername(email);
+                User user = userRepository.findByEmail(email).orElse(null);
+                
+                if (userDetails != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(
+                            user,
+                            null, 
+                            userDetails.getAuthorities()
+                        );
+                    
+                    authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+                    
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
-            
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}");
+            logger.error("Cannot set user authentication: " + e.getMessage());
         }
         
         filterChain.doFilter(request, response);
@@ -67,7 +86,6 @@ public class JwtFilter extends OncePerRequestFilter {
         response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin");
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Max-Age", "3600");
-        
         response.setHeader("Access-Control-Expose-Headers", "Authorization, Content-Type");
     }
 
@@ -78,26 +96,6 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilterAsyncDispatch() {
         return false;
-    }
-
-    private void setAuthenticationToSecurityContextHolder(String token, HttpServletRequest request) {
-        String email = jwtService.getEmailFromToken(token);
-        UserDetails userDetails = customUserService.loadUserByUsername(email);
-        
-        if (userDetails != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UsernamePasswordAuthenticationToken authentication = 
-                new UsernamePasswordAuthenticationToken(
-                    userDetails, 
-                    null, 
-                    userDetails.getAuthorities()
-                );
-            
-            authentication.setDetails(
-                new WebAuthenticationDetailsSource().buildDetails(request)
-            );
-            
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {

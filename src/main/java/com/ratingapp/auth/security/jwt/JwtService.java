@@ -5,9 +5,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import javax.crypto.SecretKey;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,7 +13,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import com.ratingapp.auth.dto.JwtAuthenticationDto;
 import com.ratingapp.auth.security.RefreshTokenService;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -153,7 +150,6 @@ public class JwtService {
         }
     }
     
-
     public boolean isAccessToken(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
@@ -162,7 +158,6 @@ public class JwtService {
                     .parseClaimsJws(token)
                     .getBody();
             
-          
             String tokenType = (String) claims.get("token_type");
             return "access".equals(tokenType);
             
@@ -179,7 +174,6 @@ public class JwtService {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-            
             
             String tokenType = (String) claims.get("token_type");
             return "refresh".equals(tokenType);

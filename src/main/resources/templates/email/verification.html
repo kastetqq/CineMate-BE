@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Confirmation</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2>Hello, <span th:text="${username}">User</span>!</h2>
+        <p>Please confirm your email address by clicking the link below:</p>
+        <p>
+            <a th:href="${verificationLink}" 
+               style="background: #667eea; color: white; padding: 10px 20px; 
+                      text-decoration: none; border-radius: 5px;">
+                Confirm Email
+            </a>
+        </p>
+        <p>This link will expire in 24 hours.</p>
+        <p>If you didn't request this change, please ignore this email.</p>
+        <hr>
+        <p style="color: #999; font-size: 12px;">© RatingApp</p>
+    </div>
+</body>
+</html>

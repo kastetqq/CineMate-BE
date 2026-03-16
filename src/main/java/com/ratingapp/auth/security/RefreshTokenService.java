@@ -5,12 +5,10 @@ import com.ratingapp.auth.entity.User;
 import com.ratingapp.auth.repository.RefreshTokenRepository;
 import com.ratingapp.auth.repository.UserRepository;
 import com.ratingapp.auth.security.jwt.JwtService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,7 +19,6 @@ import java.util.Optional;
 @Service
 @Transactional
 public class RefreshTokenService {
-    
     
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
@@ -56,26 +53,20 @@ public class RefreshTokenService {
     public boolean isValidRefreshToken(String refreshToken) {
         try {
             String tokenSignature = generateTokenSignature(refreshToken);
-        
             Optional<RefreshToken> tokenOpt = refreshTokenRepository.findByTokenSignature(tokenSignature);
-        
-            if (tokenOpt.isEmpty()) {
-            return false;
-            }
-        
-            RefreshToken token = tokenOpt.get();
-        
-        
-            boolean isValid = !token.isRevoked() && token.getExpiresAt().isAfter(LocalDateTime.now());
-        
             
+            if (tokenOpt.isEmpty()) {
+                return false;
+            }
+            
+            RefreshToken token = tokenOpt.get();
+            boolean isValid = !token.isRevoked() && token.getExpiresAt().isAfter(LocalDateTime.now());
             boolean isJwtValid = jwtService.validateJwtToken(refreshToken) && 
                             jwtService.isRefreshToken(refreshToken);
-        
+            
             return isValid && isJwtValid;
-        
+            
         } catch (Exception e) {
-            e.getMessage();
             return false;
         }
     }
@@ -108,7 +99,6 @@ public class RefreshTokenService {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-
             return Base64.getEncoder().encodeToString(hash).substring(0, 44);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Error generating token signature", e);
