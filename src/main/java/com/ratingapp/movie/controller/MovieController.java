@@ -54,6 +54,13 @@ public class MovieController {
         return ResponseEntity.ok(movies);
     }
     
+    @GetMapping("/all")
+    public ResponseEntity<List<MovieResponseDto>> getAllMovies() {
+        log.info("Fetching all movies from all categories");
+        List<MovieResponseDto> movies = movieService.getAllMovies();
+        return ResponseEntity.ok(movies);
+    }
+    
     @GetMapping("/{tmdbId}")
     public ResponseEntity<MovieDetailsResponseDto> getMovieDetails(
             @PathVariable Long tmdbId) {

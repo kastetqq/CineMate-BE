@@ -30,10 +30,10 @@ public class MovieService {
     private static final int UPCOMING_MOVIES_LIMIT = 5;
     private static final int PAGES_TO_FETCH = 5;
     
-    @Scheduled(cron = "* * 3 15 * *")
+    @Scheduled(cron = "0 0 3 */15 * *")
     @Transactional
     public void refreshAllCategories() {
-        log.info("Starting daily refresh of all movie categories");
+        log.info("Starting refresh of all movie categories (every 15 days)");
         
         refreshTrendingMovies();
         refreshNewReleases();
@@ -42,7 +42,7 @@ public class MovieService {
         
         cleanupOrphanedMovies();
         
-        log.info("Daily refresh completed");
+        log.info("Refresh completed");
     }
     
     @Transactional
@@ -278,6 +278,15 @@ public class MovieService {
         PageRequest pageRequest = PageRequest.of(page, size);
         return movieRepository.findByUpcomingTrueOrderByReleaseDateDesc(pageRequest)
             .stream()
+            .map(movie -> new MovieResponseDto(movie, imageBaseUrl))
+            .collect(Collectors.toList());
+    }
+    
+    public List<MovieResponseDto> getAllMovies() {
+        log.info("Fetching all movies from all categories");
+        List<Movie> movies = movieRepository.findAllMoviesInCategories();
+        log.info("Found {} unique movies across all categories", movies.size());
+        return movies.stream()
             .map(movie -> new MovieResponseDto(movie, imageBaseUrl))
             .collect(Collectors.toList());
     }
