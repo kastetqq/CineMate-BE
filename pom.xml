@@ -87,7 +87,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Добавил для работы с Servlet API -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>

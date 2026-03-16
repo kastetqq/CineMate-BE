@@ -1,11 +1,11 @@
-package com.ratingapp.auth.dto;
+package com.ratingapp.profile.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-public class UserResponseDto {
+public class UserProfileDto {
     private UUID id;
     private String username;
     private String email;

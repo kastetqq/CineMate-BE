@@ -2,15 +2,12 @@ package com.ratingapp.auth.security;
 
 import java.util.Collection;
 import java.util.Collections;
-
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import com.ratingapp.auth.entity.User;
 
-public record CustomUserDetails(User user) implements UserDetails{
-
+public record CustomUserDetails(User user) implements UserDetails {
 
     @Override
     public String getPassword() {
@@ -29,7 +26,7 @@ public record CustomUserDetails(User user) implements UserDetails{
         );
     }
 
-     @Override
+    @Override
     public boolean isAccountNonExpired() {
         return true;
     }
@@ -42,5 +39,14 @@ public record CustomUserDetails(User user) implements UserDetails{
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
-    }                    
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+    
+    public User getUser() {
+        return user;
+    }
 }
