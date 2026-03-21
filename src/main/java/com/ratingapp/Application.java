@@ -8,8 +8,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-@EntityScan(basePackages = {"com.ratingapp.movie.entity", "com.ratingapp.auth.entity", "com.ratingapp.watchlist.entity"})
-@EnableJpaRepositories(basePackages = {"com.ratingapp.movie.repository", "com.ratingapp.auth.repository", "com.ratingapp.watchlist.repository"})
+@EntityScan(basePackages = {"com.ratingapp.movie.entity", "com.ratingapp.auth.entity", "com.ratingapp.watchlist.entity","com.ratingapp.reviews.entity"})
+@EnableJpaRepositories(basePackages = {"com.ratingapp.movie.repository", "com.ratingapp.auth.repository", "com.ratingapp.watchlist.repository","com.ratingapp.reviews.repository"})
 public class Application {
 
     public static void main(String[] args) {

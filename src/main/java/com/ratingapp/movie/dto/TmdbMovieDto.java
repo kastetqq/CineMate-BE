@@ -12,6 +12,9 @@ public class TmdbMovieDto {
     
     @JsonProperty("vote_average")
     private Double voteAverage;
+
+    @JsonProperty("runtime")
+    private Integer runtime;
     
     @JsonProperty("popularity")
     private Double popularity;
