@@ -111,6 +111,8 @@ public class TmdbApiService {
                 TmdbMovieListResponseDto.class
             );
             
+            log.info("Response status: {}", response.getStatusCode());
+
             if (response.getBody() != null && response.getBody().getResults() != null) {
                 return response.getBody().getResults();
             }
