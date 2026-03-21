@@ -32,7 +32,6 @@ public class MovieResponseDto {
     }
     
     public MovieResponseDto(TmdbMovieDto dto, String imageBaseUrl) {
-        this.id = null;
         this.tmdbId = dto.getId();
         this.title = dto.getTitle();
         this.overview = dto.getOverview();
@@ -48,7 +47,5 @@ public class MovieResponseDto {
         if (dto.getGenreIds() != null) {
             this.genres = Genre.toDisplayNames(dto.getGenreIds());
         }
-        
-        this.runtime = dto.getRuntime();
     }
 }
