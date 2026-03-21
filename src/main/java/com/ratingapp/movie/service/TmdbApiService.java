@@ -90,10 +90,11 @@ public class TmdbApiService {
     public List<TmdbMovieDto> searchMovies(String query, int page) {
         try {
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8.toString());
+            int safePage = Math.max(page, 1);
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/search/movie")
                 .queryParam("query", encodedQuery)
                 .queryParam("language", "ru-RU")
-                .queryParam("page", page)
+                .queryParam("page", safePage)
                 .toUriString();
             return fetchMovieList(url);
         } catch (Exception e) {

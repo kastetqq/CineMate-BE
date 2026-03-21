@@ -293,7 +293,9 @@ public class MovieService {
     }
     
     public List<MovieResponseDto> searchMovies(String query, int page, int size) {
-        List<TmdbMovieDto> tmdbMovies = tmdbApiService.searchMovies(query, page);
+
+        int tmdbPage = page + 1;
+        List<TmdbMovieDto> tmdbMovies = tmdbApiService.searchMovies(query, tmdbPage);
         
         return tmdbMovies.stream()
             .limit(size)
