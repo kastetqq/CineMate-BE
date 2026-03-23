@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -85,6 +87,21 @@ public class TmdbApiService {
         return fetchMovieList(url);
     }
     
+    public List<TmdbMovieDto> searchMovies(String query, int page) {
+        try {
+            int safePage = Math.max(page, 1);
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/search/movie")
+                .queryParam("query", query)
+                .queryParam("language", "ru-RU")
+                .queryParam("page", safePage)
+                .toUriString();
+            return fetchMovieList(url);
+        } catch (Exception e) {
+            log.error("Failed to encode search query", e);
+            return Collections.emptyList();
+        }
+    }
+    
     private List<TmdbMovieDto> fetchMovieList(String url) {
         try {
             ResponseEntity<TmdbMovieListResponseDto> response = restTemplate.exchange(
@@ -94,6 +111,8 @@ public class TmdbApiService {
                 TmdbMovieListResponseDto.class
             );
             
+            log.info("Response status: {}", response.getStatusCode());
+
             if (response.getBody() != null && response.getBody().getResults() != null) {
                 return response.getBody().getResults();
             }

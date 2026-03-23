@@ -61,6 +61,15 @@ public class MovieController {
         return ResponseEntity.ok(movies);
     }
     
+    @GetMapping("/search")
+    public ResponseEntity<List<MovieResponseDto>> searchMovies(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<MovieResponseDto> movies = movieService.searchMovies(query, page, size);
+        return ResponseEntity.ok(movies);
+    }
+    
     @GetMapping("/{tmdbId}")
     public ResponseEntity<MovieDetailsResponseDto> getMovieDetails(
             @PathVariable Long tmdbId) {

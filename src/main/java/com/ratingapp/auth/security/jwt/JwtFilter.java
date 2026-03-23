@@ -64,6 +64,10 @@ public class JwtFilter extends OncePerRequestFilter {
                     );
                     
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    
+                    if (user != null && user.getId() != null) {
+                        request.setAttribute("userId", user.getId());
+                    }
                 }
             }
         } catch (Exception e) {

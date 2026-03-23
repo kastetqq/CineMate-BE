@@ -234,6 +234,7 @@ public class MovieService {
         
         movie.setPosterPath(dto.getPosterPath());
         movie.setGenreIds(dto.getGenreIds());
+        movie.setRuntime(dto.getRuntime());
     }
     
     private void setCategoryFlag(Movie movie, String category, boolean value) {
@@ -288,6 +289,17 @@ public class MovieService {
         log.info("Found {} unique movies across all categories", movies.size());
         return movies.stream()
             .map(movie -> new MovieResponseDto(movie, imageBaseUrl))
+            .collect(Collectors.toList());
+    }
+    
+    public List<MovieResponseDto> searchMovies(String query, int page, int size) {
+
+        int tmdbPage = page + 1;
+        List<TmdbMovieDto> tmdbMovies = tmdbApiService.searchMovies(query, tmdbPage);
+        
+        return tmdbMovies.stream()
+            .limit(size)
+            .map(dto -> new MovieResponseDto(dto, imageBaseUrl))
             .collect(Collectors.toList());
     }
     
