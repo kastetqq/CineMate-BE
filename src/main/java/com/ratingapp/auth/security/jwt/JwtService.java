@@ -112,7 +112,7 @@ public class JwtService {
     }
 
     private String generateRefreshToken(String email){
-        Date date = Date.from(LocalDateTime.now().plusDays(7).atZone(ZoneId.systemDefault()).toInstant());
+        Date date = Date.from(LocalDateTime.now().plusMinutes(3).atZone(ZoneId.systemDefault()).toInstant());
         return Jwts.builder()
                 .setSubject(email)
                 .claim("token_type", "refresh")
