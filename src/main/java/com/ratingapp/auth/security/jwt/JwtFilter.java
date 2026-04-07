@@ -28,7 +28,8 @@ public class JwtFilter extends OncePerRequestFilter {
     private final UserRepository userRepository;
 
     private final List<String> allowedOrigins = Arrays.asList(
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://72.56.106.83"
     );
 
     @Override
