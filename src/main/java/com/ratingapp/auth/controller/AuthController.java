@@ -186,4 +186,13 @@ private final UserService userService;
                     .body(Collections.singletonMap("error", "Token refresh failed: " + e.getMessage()));
         }
     }
+
+    @GetMapping("/error")
+    public ResponseEntity<?> handleNextAuthError() {
+        return ResponseEntity.ok(Map.of(
+            "status", "error",
+            "message", "NextAuth redirected here. Check backend console logs and Network tab payload!"
+        ));
+    }
+
 }
