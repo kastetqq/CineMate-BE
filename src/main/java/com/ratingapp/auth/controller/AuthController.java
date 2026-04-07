@@ -187,12 +187,4 @@ private final UserService userService;
         }
     }
 
-    @GetMapping("/error")
-    public ResponseEntity<?> handleNextAuthError() {
-        return ResponseEntity.ok(Map.of(
-            "status", "error",
-            "message", "NextAuth redirected here. Check backend console logs and Network tab payload!"
-        ));
-    }
-
 }

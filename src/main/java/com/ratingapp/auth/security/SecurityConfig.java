@@ -54,8 +54,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/register", 
                     "/api/auth/sign-in", 
-                    "/api/auth/refresh", 
-                    "/api/auth/error",
+                    "/api/auth/refresh",
                     "/api/movies/**", 
                     "/api/reviews"
                 ).permitAll()
@@ -76,8 +75,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",
-            "http://72.56.106.83",
-            "http://127.0.0.1:3000"
+            "http://72.56.106.83"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
