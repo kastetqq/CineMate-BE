@@ -51,7 +51,14 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/register", "/api/auth/sign-in","/api/movies/**","/api/auth/refresh","/api/reviews","/api/auth/error").permitAll()
+                .requestMatchers(
+                    "/api/auth/register", 
+                    "/api/auth/sign-in", 
+                    "/api/auth/refresh", 
+                    "/api/auth/error",
+                    "/api/movies/**", 
+                    "/api/reviews"
+                ).permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/api-docs/**").permitAll()
                 .requestMatchers("/api/profile/**").authenticated()
                 .requestMatchers("/api/auth/sign-out").authenticated()
@@ -67,26 +74,24 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
         configuration.setAllowedOrigins(Arrays.asList(
-        "http://localhost:3000",
-            "http://72.56.106.83"
+            "http://localhost:3000",
+            "http://72.56.106.83",
+            "http://127.0.0.1:3000"
         ));
-
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
-
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true); 
-
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-        }
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder(4);
+        return new BCryptPasswordEncoder();
     }
 }
