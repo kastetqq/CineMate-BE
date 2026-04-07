@@ -5,6 +5,9 @@ import com.ratingapp.auth.service.UserService;
 import com.ratingapp.profile.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,11 @@ public class ProfileService {
         return dto;
     }
     
+    public UserProfileDto getProfileById(UUID id) {
+        User user = userService.findById(id);
+        return getUserProfile(user);
+    }
+
     @Transactional
     public UserProfileDto updateUsername(User user, String newUsername) {
         if (newUsername == null || newUsername.trim().length() < 3) {
@@ -52,8 +60,7 @@ public class ProfileService {
         if (!newEmail.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             throw new RuntimeException("Invalid email format");
         }
-        
-        // Мгновенная смена email без подтверждения!
+
         User updated = userService.updateEmail(user.getId(), newEmail);
         return getUserProfile(updated);
     }

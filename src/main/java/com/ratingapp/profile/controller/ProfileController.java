@@ -4,6 +4,9 @@ import com.ratingapp.auth.entity.User;
 import com.ratingapp.profile.dto.*;
 import com.ratingapp.profile.service.ProfileService;
 import lombok.RequiredArgsConstructor;
+
+import java.util.UUID;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +36,11 @@ public class ProfileController {
             @AuthenticationPrincipal User user,
             @RequestBody UpdateBioRequest request) {
         return ResponseEntity.ok(profileService.updateBio(user, request.getBio()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserProfileDto> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(profileService.getProfileById(id));
     }
     
     @PutMapping("/email")
