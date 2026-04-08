@@ -40,7 +40,7 @@ public class ReviewController {
         return ResponseEntity.noContent().build();
     }
     
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<Page<ReviewResponseDto>> getAllReviews(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,

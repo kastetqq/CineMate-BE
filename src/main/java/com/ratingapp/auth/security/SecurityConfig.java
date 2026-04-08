@@ -54,8 +54,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/auth/refresh",
-                    "/api/movies/**", 
-                    "/api/reviews"
+                    "/api/movies/**",
+                    "/api/reviews/all"
                 ).permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/api-docs/**").permitAll()
                 .requestMatchers("/api/profile/**").authenticated()
