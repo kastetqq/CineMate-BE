@@ -1,7 +1,6 @@
 package com.ratingapp.reviews.service;
 
 import com.ratingapp.auth.entity.User;
-import com.ratingapp.auth.repository.UserRepository;
 import com.ratingapp.reviews.dto.*;
 import com.ratingapp.reviews.entity.*;
 import com.ratingapp.reviews.repository.*;
@@ -25,14 +24,10 @@ public class ReviewService {
     private final ReviewCommentRepository commentRepository;
     private final ReviewReactionRepository reactionRepository;
     private final ReviewFavoriteRepository favoriteRepository;
-    private final UserRepository userRepository;
     
     @Transactional
-    public ReviewResponseDto createReview(ReviewRequestDto request, UUID userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        if (reviewRepository.findByUserIdAndMovieId(userId, request.getMovieId()).isPresent()) {
+    public ReviewResponseDto createReview(ReviewRequestDto request, User user) {
+        if (reviewRepository.findByUserIdAndMovieId(user.getId(), request.getMovieId()).isPresent()) {
             throw new RuntimeException("You have already reviewed this movie");
         }
         
@@ -48,15 +43,15 @@ public class ReviewService {
         
         Review saved = reviewRepository.save(review);
         
-        return convertToResponseDto(saved, userId);
+        return convertToResponseDto(saved, user.getId());
     }
     
     @Transactional
-    public ReviewResponseDto updateReview(UUID reviewId, ReviewRequestDto request, UUID userId) {
+    public ReviewResponseDto updateReview(UUID reviewId, ReviewRequestDto request, User user) {
         Review review = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new RuntimeException("Review not found"));
         
-        if (!review.getUser().getId().equals(userId)) {
+        if (!review.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("You can only update your own reviews");
         }
         
@@ -65,63 +60,65 @@ public class ReviewService {
         review.setIsSpoiler(request.getIsSpoiler());
         
         Review saved = reviewRepository.save(review);
-        return convertToResponseDto(saved, userId);
+        return convertToResponseDto(saved, user.getId());
     }
     
     @Transactional
-    public void deleteReview(UUID reviewId, UUID userId) {
+    public void deleteReview(UUID reviewId, User user) {
         Review review = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new RuntimeException("Review not found"));
         
-        if (!review.getUser().getId().equals(userId)) {
+        if (!review.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("You can only delete your own reviews");
         }
         
         reviewRepository.delete(review);
     }
     
-    public Page<ReviewResponseDto> getAllReviews(int page, int size, UUID currentUserId) {
+    public Page<ReviewResponseDto> getAllReviews(int page, int size, User currentUser) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        UUID currentUserId = currentUser != null ? currentUser.getId() : null;
         return reviewRepository.findAll(pageable)
             .map(review -> convertToResponseDto(review, currentUserId));
     }
     
-    public Page<ReviewResponseDto> getReviewsByMovie(Long movieId, int page, int size, UUID currentUserId) {
+    public Page<ReviewResponseDto> getReviewsByMovie(Long movieId, int page, int size, User currentUser) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        UUID currentUserId = currentUser != null ? currentUser.getId() : null;
         return reviewRepository.findByMovieIdOrderByCreatedAtDesc(movieId, pageable)
             .map(review -> convertToResponseDto(review, currentUserId));
     }
     
-    public Page<ReviewResponseDto> getReviewsByUser(UUID userId, int page, int size, UUID currentUserId) {
+    public Page<ReviewResponseDto> getReviewsByUser(UUID userId, int page, int size, User currentUser) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        UUID currentUserId = currentUser != null ? currentUser.getId() : null;
         return reviewRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
             .map(review -> convertToResponseDto(review, currentUserId));
     }
     
-    public Page<ReviewResponseDto> searchByMovieTitle(String movieTitle, int page, int size, UUID currentUserId) {
+    public Page<ReviewResponseDto> searchByMovieTitle(String movieTitle, int page, int size, User currentUser) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        UUID currentUserId = currentUser != null ? currentUser.getId() : null;
         return reviewRepository.findByMovieTitleContainingIgnoreCaseOrderByCreatedAtDesc(movieTitle, pageable)
             .map(review -> convertToResponseDto(review, currentUserId));
     }
     
-    public Page<ReviewResponseDto> searchByUserName(String username, int page, int size, UUID currentUserId) {
+    public Page<ReviewResponseDto> searchByUserName(String username, int page, int size, User currentUser) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        UUID currentUserId = currentUser != null ? currentUser.getId() : null;
         return reviewRepository.findByUserNameContaining(username, pageable)
             .map(review -> convertToResponseDto(review, currentUserId));
     }
     
     @Transactional
-    public void likeReview(UUID reviewId, UUID userId) {
+    public void likeReview(UUID reviewId, User user) {
         Review review = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new RuntimeException("Review not found"));
         
-        if (reactionRepository.findByUserIdAndReviewId(userId, reviewId).isPresent()) {
-            reactionRepository.deleteByUserIdAndReviewId(userId, reviewId);
+        if (reactionRepository.findByUserIdAndReviewId(user.getId(), reviewId).isPresent()) {
+            reactionRepository.deleteByUserIdAndReviewId(user.getId(), reviewId);
             review.setLikesCount(review.getLikesCount() - 1);
         } else {
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-            
             ReviewReaction reaction = new ReviewReaction();
             reaction.setUser(user);
             reaction.setReview(review);
@@ -133,16 +130,13 @@ public class ReviewService {
     }
     
     @Transactional
-    public void addToFavorites(UUID reviewId, UUID userId) {
-        if (favoriteRepository.existsByUserIdAndReviewId(userId, reviewId)) {
+    public void addToFavorites(UUID reviewId, User user) {
+        if (favoriteRepository.existsByUserIdAndReviewId(user.getId(), reviewId)) {
             return;
         }
         
         Review review = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new RuntimeException("Review not found"));
-        
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
         
         ReviewFavorite favorite = new ReviewFavorite();
         favorite.setUser(user);
@@ -151,24 +145,21 @@ public class ReviewService {
     }
     
     @Transactional
-    public void removeFromFavorites(UUID reviewId, UUID userId) {
-        favoriteRepository.findByUserIdAndReviewId(userId, reviewId)
+    public void removeFromFavorites(UUID reviewId, User user) {
+        favoriteRepository.findByUserIdAndReviewId(user.getId(), reviewId)
             .ifPresent(favoriteRepository::delete);
     }
     
-    public Page<ReviewResponseDto> getFavoriteReviews(UUID userId, int page, int size, UUID currentUserId) {
+    public Page<ReviewResponseDto> getFavoriteReviews(User user, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "review.createdAt"));
-        return favoriteRepository.findByUserIdOrderByReviewCreatedAtDesc(userId, pageable)
-            .map(favorite -> convertToResponseDto(favorite.getReview(), currentUserId));
+        return favoriteRepository.findByUserIdOrderByReviewCreatedAtDesc(user.getId(), pageable)
+            .map(favorite -> convertToResponseDto(favorite.getReview(), user.getId()));
     }
     
     @Transactional
-    public ReviewCommentDto addComment(UUID reviewId, ReviewCommentRequestDto request, UUID userId) {
+    public ReviewCommentDto addComment(UUID reviewId, ReviewCommentRequestDto request, User user) {
         Review review = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new RuntimeException("Review not found"));
-        
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
         
         ReviewComment comment = new ReviewComment();
         comment.setReview(review);
