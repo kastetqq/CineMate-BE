@@ -14,7 +14,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import com.ratingapp.auth.entity.User;
-import com.ratingapp.auth.security.CustomUserDetails;
+import com.ratingapp.auth.repository.UserRepository;
 import com.ratingapp.auth.security.CustomUserServiceImpl;
 
 import java.io.IOException;
@@ -26,6 +26,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserServiceImpl customUserService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, 
@@ -40,11 +41,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = customUserService.loadUserByUsername(email);
+                    User user = userRepository.findByEmail(email).orElse(null);
                     
-                    if (userDetails != null) {
+                    if (userDetails != null && user != null) {
                         UsernamePasswordAuthenticationToken authentication = 
                             new UsernamePasswordAuthenticationToken(
-                                userDetails,
+                                user, 
                                 null, 
                                 userDetails.getAuthorities()
                             );
@@ -54,12 +56,9 @@ public class JwtFilter extends OncePerRequestFilter {
                         );
                         
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                        if (userDetails instanceof CustomUserDetails) {
-                            User user = ((CustomUserDetails) userDetails).getUser();
-                            request.setAttribute("userId", user.getId());
-                            log.debug("Authenticated user: {} with ID: {}", email, user.getId());
-                        }
+                        request.setAttribute("userId", user.getId());
+                        
+                        log.debug("Authenticated user: {}", email);
                     }
                 }
             }
