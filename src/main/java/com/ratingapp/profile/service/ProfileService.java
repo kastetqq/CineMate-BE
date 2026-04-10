@@ -5,13 +5,13 @@ import com.ratingapp.auth.service.UserService;
 import com.ratingapp.profile.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.UUID;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProfileService {
     
     private final UserService userService;
+    private final AvatarService avatarService;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(4);
     
     public UserProfileDto getUserProfile(User user) {
@@ -27,6 +28,7 @@ public class ProfileService {
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setBio(user.getBio());
+        dto.setAvatarUrl(user.getAvatarUrl());
         dto.setRole(user.getRole().name());
         dto.setCreatedAt(user.getCreatedAt());
         return dto;
@@ -42,26 +44,37 @@ public class ProfileService {
         if (newUsername == null || newUsername.trim().length() < 3) {
             throw new RuntimeException("Username must be at least 3 characters");
         }
-        User updated = userService.updateUsername(user.getId(), newUsername);
-        return getUserProfile(updated);
-    }
-    
-    @Transactional
-    public UserProfileDto updateBio(User user, String bio) {
-        if (bio != null && bio.length() > 500) {
-            throw new RuntimeException("Bio must be less than 500 characters");
+        if (userService.findByUsername(newUsername).isPresent()) {
+            throw new RuntimeException("Username already taken");
         }
-        User updated = userService.updateBio(user.getId(), bio);
+        
+        user.setUsername(newUsername);
+        User updated = userService.save(user);
         return getUserProfile(updated);
     }
-    
+
     @Transactional
     public UserProfileDto updateEmail(User user, String newEmail) {
         if (!newEmail.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             throw new RuntimeException("Invalid email format");
         }
+        if (userService.findByEmail(newEmail).isPresent()) {
+            throw new RuntimeException("Email already taken");
+        }
+        
+        user.setEmail(newEmail);
+        User updated = userService.save(user);
+        return getUserProfile(updated);
+    }
 
-        User updated = userService.updateEmail(user.getId(), newEmail);
+    @Transactional
+    public UserProfileDto updateBio(User user, String bio) {
+        if (bio != null && bio.length() > 500) {
+            throw new RuntimeException("Bio must be less than 500 characters");
+        }
+        
+        user.setBio(bio);
+        User updated = userService.save(user);
         return getUserProfile(updated);
     }
     
@@ -75,8 +88,35 @@ public class ProfileService {
             throw new RuntimeException("New password must be at least 6 characters");
         }
         
-        String hash = passwordEncoder.encode(request.getNewPassword());
-        userService.updatePassword(user.getId(), hash);
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userService.save(user);
         log.info("Password updated for user: {}", user.getId());
+    }
+    
+    @Transactional
+    public UserProfileDto updateAvatar(User user, MultipartFile file) {
+        String newAvatarUrl = avatarService.uploadAvatar(file, user.getId());
+        
+        String oldAvatarUrl = user.getAvatarUrl();
+        user.setAvatarUrl(newAvatarUrl);
+        User updated = userService.save(user);
+        
+        if (oldAvatarUrl != null && !oldAvatarUrl.isEmpty()) {
+            avatarService.deleteAvatar(oldAvatarUrl);
+        }
+        
+        log.info("Avatar updated for user: {}", user.getId());
+        return getUserProfile(updated);
+    }
+    
+    @Transactional
+    public void deleteAvatar(User user) {
+        String avatarUrl = user.getAvatarUrl();
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            user.setAvatarUrl(null);
+            userService.save(user);
+            avatarService.deleteAvatar(avatarUrl);
+            log.info("Avatar deleted for user: {}", user.getId());
+        }
     }
 }

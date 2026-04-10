@@ -3,13 +3,16 @@ package com.ratingapp.profile.controller;
 import com.ratingapp.auth.entity.User;
 import com.ratingapp.profile.dto.*;
 import com.ratingapp.profile.service.ProfileService;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import lombok.RequiredArgsConstructor;
-
-import java.util.UUID;
-
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -37,10 +40,25 @@ public class ProfileController {
             @RequestBody UpdateBioRequest request) {
         return ResponseEntity.ok(profileService.updateBio(user, request.getBio()));
     }
-
+    
     @GetMapping("/{id}")
     public ResponseEntity<UserProfileDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(profileService.getProfileById(id));
+    }
+    
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfileDto> uploadAvatar(
+            @AuthenticationPrincipal User user,
+            @Parameter(description = "Avatar image file", required = true, content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(profileService.updateAvatar(user, file));
+    }
+    
+    @DeleteMapping("/avatar")
+    public ResponseEntity<Void> deleteAvatar(
+            @AuthenticationPrincipal User user) {
+        profileService.deleteAvatar(user);
+        return ResponseEntity.noContent().build();
     }
     
     @PutMapping("/email")

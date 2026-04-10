@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,6 +27,14 @@ public class UserService {
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+    
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+    
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
     
     @Transactional
@@ -48,6 +58,7 @@ public class UserService {
         response.setUsername(savedUser.getUsername());
         response.setEmail(savedUser.getEmail());
         response.setBio(savedUser.getBio());
+        response.setAvatarUrl(savedUser.getAvatarUrl());
         response.setRole(savedUser.getRole().name());
         response.setCreatedAt(savedUser.getCreatedAt());
         
@@ -55,45 +66,7 @@ public class UserService {
     }
     
     @Transactional
-    public User updateUsername(UUID userId, String newUsername) {
-        if (userRepository.existsByUsername(newUsername)) {
-            throw new RuntimeException("Username already taken");
-        }
-        User user = findById(userId);
-        user.setUsername(newUsername);
+    public User save(User user) {
         return userRepository.save(user);
-    }
-    
-    @Transactional
-    public User updateEmail(UUID userId, String newEmail) {
-        if (userRepository.existsByEmail(newEmail)) {
-            throw new RuntimeException("Email already taken");
-        }
-        User user = findById(userId);
-        user.setEmail(newEmail);
-        return userRepository.save(user);
-    }
-    
-    @Transactional
-    public User updateBio(UUID userId, String bio) {
-        if (bio != null && bio.length() > 500) {
-            throw new RuntimeException("Bio must be less than 500 characters");
-        }
-        User user = findById(userId);
-        user.setBio(bio);
-        return userRepository.save(user);
-    }
-    
-    @Transactional
-    public void updatePassword(UUID userId, String newPasswordHash) {
-        User user = findById(userId);
-        user.setPasswordHash(newPasswordHash);
-        userRepository.save(user);
-    }
-    
-    @Transactional
-    public void markEmailAsVerified(UUID userId) {
-        User user = findById(userId);
-        userRepository.save(user);
     }
 }
