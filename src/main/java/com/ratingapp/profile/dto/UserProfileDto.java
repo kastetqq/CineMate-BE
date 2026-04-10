@@ -9,6 +9,7 @@ public class UserProfileDto {
     private UUID id;
     private String username;
     private String email;
+    private String avatarUrl;
     private String bio;
     private String role;
     private LocalDateTime createdAt;
