@@ -30,7 +30,7 @@ public class MovieService {
     private static final int UPCOMING_MOVIES_LIMIT = 5;
     private static final int PAGES_TO_FETCH = 5;
     
-    @Scheduled(cron = "0 10 5 * * *")
+    @Scheduled(cron = "0 0 3 */15 * *")
     @Transactional
     public void refreshAllCategories() {
         log.info("Starting refresh of all movie categories (every 15 days)");
