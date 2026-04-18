@@ -30,7 +30,7 @@ public class MovieService {
     private static final int UPCOMING_MOVIES_LIMIT = 5;
     private static final int PAGES_TO_FETCH = 5;
     
-    @Scheduled(cron = "0 0 3 */15 * *")
+    @Scheduled(cron = "0 10 5 * * *")
     @Transactional
     public void refreshAllCategories() {
         log.info("Starting refresh of all movie categories (every 15 days)");
@@ -208,6 +208,10 @@ public class MovieService {
             
             setCategoryFlag(movie, category, true);
             movieRepository.save(movie);
+            
+            if (movie.getMovieTrailerUrl() == null || movie.getMovieTrailerUrl().isEmpty()) {
+                refreshMovieTrailer(dto.getId());
+            }
         }
     }
     
@@ -311,6 +315,30 @@ public class MovieService {
         
         return convertToDetailsResponse(tmdbDetails);
     }
+
+    @Transactional
+    public void refreshMovieTrailer(Long tmdbId) {
+        log.info("Refreshing trailer for movie: {}", tmdbId);
+    
+        TmdbVideoDto trailer = tmdbApiService.getMovieTrailer(tmdbId);
+    
+        if (trailer == null) {
+            return;
+        }
+        String embedUrl = "https://www.youtube.com/embed/" + trailer.getKey();
+
+        movieRepository.findByTmdbId(tmdbId).ifPresent(movie -> {
+            movie.setMovieTrailerUrl(embedUrl);
+            movieRepository.save(movie);
+            log.info("Trailer saved for movie: {}", movie.getTitle());
+        });
+    }
+
+    private String getTrailerUrlFromDb(Long tmdbId) {
+        return movieRepository.findByTmdbId(tmdbId)
+        .map(Movie::getMovieTrailerUrl)
+        .orElse(null);
+    }   
     
     private MovieDetailsResponseDto convertToDetailsResponse(TmdbMovieDetailsDto tmdb) {
         MovieDetailsResponseDto dto = new MovieDetailsResponseDto();
@@ -321,6 +349,7 @@ public class MovieService {
         dto.setVoteAverage(tmdb.getVoteAverage());
         dto.setPopularity(tmdb.getPopularity());
         dto.setRuntime(tmdb.getRuntime());
+        dto.setTrailerUrl(getTrailerUrlFromDb(tmdb.getId()));
         
         if (tmdb.getReleaseDate() != null) {
             try {
@@ -413,7 +442,7 @@ public class MovieService {
             .map(this::convertToCrewDto)
             .collect(Collectors.toList());
     }
-    
+
     private CrewDto convertToCrewDto(TmdbMovieDetailsDto.CrewDto tmdbCrew) {
         CrewDto dto = new CrewDto();
         dto.setTmdbId(tmdbCrew.getTmdbId());
@@ -424,12 +453,12 @@ public class MovieService {
             imageBaseUrl + "/w185" + tmdbCrew.getProfilePath() : null);
         return dto;
     }
-    
+
     private String formatCurrency(Long amount) {
         if (amount == null || amount == 0) return null;
         return "$" + String.format("%,d", amount);
     }
-    
+
     @FunctionalInterface
     private interface PageFetcher {
         List<TmdbMovieDto> fetch(int page);

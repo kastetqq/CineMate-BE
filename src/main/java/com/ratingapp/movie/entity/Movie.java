@@ -77,6 +77,9 @@ public class Movie {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "trailer_url")
+    private String movieTrailerUrl;
+
     public List<String> getGenreNames() {
         return Genre.toDisplayNames(this.genreIds);
     }
