@@ -4,6 +4,7 @@ import com.ratingapp.movie.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -102,11 +103,11 @@ public class TmdbApiService {
     
     private List<TmdbMovieDto> fetchMovieList(String url) {
         try {
-            ResponseEntity<TmdbMovieListResponseDto> response = restTemplate.exchange(
+            ResponseEntity<TmdbListResponseDto<TmdbMovieDto>> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 createHttpEntity(),
-                TmdbMovieListResponseDto.class
+                new ParameterizedTypeReference<TmdbListResponseDto<TmdbMovieDto>>() {}
             );
             
             log.info("Response status: {}", response.getStatusCode());
@@ -141,4 +142,56 @@ public class TmdbApiService {
             return null;
         }
     }
+
+    public TmdbVideoDto getMovieTrailer(Long tmdbId){
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId + "/videos")
+            .queryParam("language", "ru-RU")
+            .toUriString();
+        try {
+            ResponseEntity<TmdbListResponseDto<TmdbVideoDto>> response = restTemplate.exchange(
+            url,
+            HttpMethod.GET,
+            createHttpEntity(),
+            new ParameterizedTypeReference<TmdbListResponseDto<TmdbVideoDto>>() {}
+        );
+        
+        if (response.getBody() != null && response.getBody().getResults() != null) {
+            List<TmdbVideoDto> videos = response.getBody().getResults();
+            
+            TmdbVideoDto trailer = videos.stream()
+                .filter(v -> "Trailer".equals(v.getType()))
+                .filter(v -> "YouTube".equals(v.getSite()))
+                .filter(v -> v.isOfficial())
+                .findFirst()
+                .orElse(null);
+            
+            if (trailer == null) {
+                trailer = videos.stream()
+                    .filter(v -> "Trailer".equals(v.getType()))
+                    .filter(v -> "YouTube".equals(v.getSite()))
+                    .findFirst()
+                    .orElse(null);
+            }
+            
+            if (trailer == null) {
+                trailer = videos.stream()
+                    .filter(v -> "Teaser".equals(v.getType()))
+                    .filter(v -> "YouTube".equals(v.getSite()))
+                    .findFirst()
+                    .orElse(null);
+            }
+            
+            if (trailer != null) {
+                log.info("Found trailer for movie {}: {}", tmdbId, trailer.getKey());
+            }
+            
+            return trailer;
+        }
+    } catch (Exception e) {
+        log.error("Error fetching trailer for movie: {}", tmdbId, e);
+    }
+    
+    return null;
+    }
+
 }

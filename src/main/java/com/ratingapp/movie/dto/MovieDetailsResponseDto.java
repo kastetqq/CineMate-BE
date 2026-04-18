@@ -20,6 +20,8 @@ public class MovieDetailsResponseDto {
     
     private List<String> genres;
 
+    private String trailerUrl;
+
     private String budget;
     private String revenue;
     private List<String> countries;

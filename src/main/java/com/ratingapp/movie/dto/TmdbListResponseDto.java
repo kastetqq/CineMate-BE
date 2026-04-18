@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class TmdbMovieListResponseDto {
+public class TmdbListResponseDto<T> {
     private Integer page;
-    private List<TmdbMovieDto> results;
+    private List<T> results;
 
     @JsonProperty("total_pages")
     private Integer totalPages;
