@@ -3,7 +3,6 @@ package com.ratingapp.movie.service;
 import com.ratingapp.movie.dto.*;
 import com.ratingapp.movie.entity.Movie;
 import com.ratingapp.movie.repository.MovieRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,56 +30,22 @@ public class MovieService {
     private static final int UPCOMING_MOVIES_LIMIT = 5;
     private static final int PAGES_TO_FETCH = 5;
     
-    @PostConstruct
-    public void init() {
-        log.info("Initial movie import on startup");
-        if (movieRepository.count() == 0) {
-            log.info("No movies found, starting initial import");
-            refreshAllCategories();
-            log.info("Initial movie import completed");
-        } else {
-            log.info("Movies already exist, skipping initial import");
-        }
-    }
-    
-    @Scheduled(cron = "0 8 11 */15 * *")
+    @Scheduled(cron = "0 8 11 * * *")
     @Transactional
     public void refreshAllCategories() {
-        log.info("Starting scheduled refresh of all movie categories");
+        log.info("Starting refresh of all movie categories (every 15 days)");
         
-        try {
-            refreshTrendingMovies();
-        } catch (Exception e) {
-            log.error("Failed to refresh trending movies: {}", e.getMessage());
-        }
+        refreshTrendingMovies();
+        refreshNewReleases();
+        refreshTopRatedMovies();
+        refreshUpcomingMovies();
         
-        try {
-            refreshNewReleases();
-        } catch (Exception e) {
-            log.error("Failed to refresh new releases: {}", e.getMessage());
-        }
+        cleanupOrphanedMovies();
         
-        try {
-            refreshTopRatedMovies();
-        } catch (Exception e) {
-            log.error("Failed to refresh top rated movies: {}", e.getMessage());
-        }
-        
-        try {
-            refreshUpcomingMovies();
-        } catch (Exception e) {
-            log.error("Failed to refresh upcoming movies: {}", e.getMessage());
-        }
-        
-        try {
-            cleanupOrphanedMovies();
-        } catch (Exception e) {
-            log.error("Failed to cleanup orphaned movies: {}", e.getMessage());
-        }
-        
-        log.info("Scheduled refresh completed");
+        log.info("Refresh completed");
     }
     
+    @Transactional
     public void refreshTrendingMovies() {
         log.info("Refreshing trending movies");
         movieRepository.resetTrendingFlag();
@@ -98,6 +62,7 @@ public class MovieService {
         processMovies(movies, "trending");
     }
     
+    @Transactional
     public void refreshNewReleases() {
         log.info("Refreshing new releases");
         movieRepository.resetNewReleaseFlag();
@@ -115,6 +80,7 @@ public class MovieService {
         processMovies(movies, "newRelease");
     }
     
+    @Transactional
     public void refreshTopRatedMovies() {
         log.info("Refreshing top rated movies");
         movieRepository.resetTopRatedFlag();
@@ -130,6 +96,7 @@ public class MovieService {
         processMovies(movies, "topRated");
     }
     
+    @Transactional
     public void refreshUpcomingMovies() {
         log.info("Refreshing upcoming movies");
         movieRepository.resetUpcomingFlag();
@@ -226,27 +193,24 @@ public class MovieService {
         return allMovies;
     }
     
+    @Transactional
     public void processMovies(List<TmdbMovieDto> movieDtos, String category) {
         for (TmdbMovieDto dto : movieDtos) {
-            try {
-                Optional<Movie> existingMovie = movieRepository.findByTmdbId(dto.getId());
-                
-                Movie movie;
-                if (existingMovie.isPresent()) {
-                    movie = existingMovie.get();
-                    updateMovieFromDto(movie, dto);
-                } else {
-                    movie = createMovieFromDto(dto);
-                }
-                
-                setCategoryFlag(movie, category, true);
-                movieRepository.save(movie);
-                
-                if (movie.getMovieTrailerUrl() == null || movie.getMovieTrailerUrl().isEmpty()) {
-                    CompletableFuture.runAsync(() -> refreshMovieTrailer(dto.getId()));
-                }
-            } catch (Exception e) {
-                log.error("Failed to process movie {}: {}", dto.getId(), e.getMessage());
+            Optional<Movie> existingMovie = movieRepository.findByTmdbId(dto.getId());
+            
+            Movie movie;
+            if (existingMovie.isPresent()) {
+                movie = existingMovie.get();
+                updateMovieFromDto(movie, dto);
+            } else {
+                movie = createMovieFromDto(dto);
+            }
+            
+            setCategoryFlag(movie, category, true);
+            movieRepository.save(movie);
+            
+            if (movie.getMovieTrailerUrl() == null || movie.getMovieTrailerUrl().isEmpty()) {
+                refreshMovieTrailer(dto.getId());
             }
         }
     }
@@ -333,6 +297,7 @@ public class MovieService {
     }
     
     public List<MovieResponseDto> searchMovies(String query, int page, int size) {
+
         int tmdbPage = page + 1;
         List<TmdbMovieDto> tmdbMovies = tmdbApiService.searchMovies(query, tmdbPage);
         
