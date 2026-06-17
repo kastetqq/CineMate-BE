@@ -29,45 +29,42 @@ public class JwtFilter extends OncePerRequestFilter {
     private final UserRepository userRepository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, 
-                                    HttpServletResponse response, 
-                                    FilterChain filterChain) throws ServletException, IOException {
+protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    try {
+        String token = getTokenFromRequest(request);
         
-        try {
-            String token = getTokenFromRequest(request);
+        if (token != null && jwtService.validateJwtToken(token) && jwtService.isAccessToken(token)) {
+            String email = jwtService.getEmailFromToken(token);
             
-            if (token != null && jwtService.validateJwtToken(token) && jwtService.isAccessToken(token)) {
-                String email = jwtService.getEmailFromToken(token);
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = customUserService.loadUserByUsername(email);
+                User user = userRepository.findByEmail(email).orElse(null);
                 
-                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = customUserService.loadUserByUsername(email);
-                    User user = userRepository.findByEmail(email).orElse(null);
-                    
-                    if (userDetails != null && user != null) {
-                        UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(
-                                user, 
-                                null, 
-                                userDetails.getAuthorities()
-                            );
-                        
-                        authentication.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
+                if (userDetails != null && user != null) {
+                    UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(
+                            user, 
+                            null, 
+                            userDetails.getAuthorities()
                         );
-                        
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                        request.setAttribute("userId", user.getId());
-                        
-                        log.debug("Authenticated user: {}", email);
-                    }
+                    
+                    authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+                    
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    request.setAttribute("userId", user.getId());
+                    
+                    log.debug("Authenticated user: {}", email);
                 }
             }
-        } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
         }
-        
-        filterChain.doFilter(request, response);
+    } catch (Exception e) {
+        log.error("Cannot set user authentication: {}", e.getMessage());
     }
+    
+    filterChain.doFilter(request, response);
+}
 
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader(HttpHeaders.AUTHORIZATION);

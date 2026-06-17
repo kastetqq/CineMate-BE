@@ -28,57 +28,57 @@ public class ReviewService {
     private final UserRepository userRepository;
     
     @Transactional
-    public ReviewResponseDto createReview(ReviewRequestDto request, UUID userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        if (reviewRepository.findByUserIdAndMovieId(userId, request.getMovieId()).isPresent()) {
-            throw new RuntimeException("You have already reviewed this movie");
-        }
-        
-        Review review = new Review();
-        review.setUser(user);
-        review.setMovieId(request.getMovieId());
-        review.setMovieTitle(request.getMovieTitle());
-        review.setMoviePosterPath(request.getMoviePosterPath());
-        review.setMovieReleaseDate(request.getMovieReleaseDate());
-        review.setContent(request.getContent());
-        review.setRating(request.getRating());
-        review.setIsSpoiler(request.getIsSpoiler());
-        
-        Review saved = reviewRepository.save(review);
-        
-        return convertToResponseDto(saved, userId);
+public ReviewResponseDto createReview(ReviewRequestDto request, UUID userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+    
+    if (reviewRepository.findByUserIdAndMovieId(userId, request.getMovieId()).isPresent()) {
+        throw new RuntimeException("You have already reviewed this movie");
     }
     
-    @Transactional
-    public ReviewResponseDto updateReview(UUID reviewId, ReviewRequestDto request, UUID userId) {
-        Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new RuntimeException("Review not found"));
-        
-        if (!review.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You can only update your own reviews");
-        }
-        
-        review.setContent(request.getContent());
-        review.setRating(request.getRating());
-        review.setIsSpoiler(request.getIsSpoiler());
-        
-        Review saved = reviewRepository.save(review);
-        return convertToResponseDto(saved, userId);
+    Review review = new Review();
+    review.setUser(user);
+    review.setMovieId(request.getMovieId());
+    review.setMovieTitle(request.getMovieTitle());
+    review.setMoviePosterPath(request.getMoviePosterPath());
+    review.setMovieReleaseDate(request.getMovieReleaseDate());
+    review.setContent(request.getContent());
+    review.setRating(request.getRating());
+    review.setIsSpoiler(request.getIsSpoiler());
+    
+    Review saved = reviewRepository.save(review);
+    
+    return convertToResponseDto(saved, userId);
+}
+    
+@Transactional
+public ReviewResponseDto updateReview(UUID reviewId, ReviewRequestDto request, UUID userId) {
+    Review review = reviewRepository.findById(reviewId)
+        .orElseThrow(() -> new RuntimeException("Review not found"));
+    
+    if (!review.getUser().getId().equals(userId)) {
+        throw new RuntimeException("You can only update your own reviews");
     }
     
-    @Transactional
-    public void deleteReview(UUID reviewId, UUID userId) {
-        Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new RuntimeException("Review not found"));
-        
-        if (!review.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You can only delete your own reviews");
-        }
-        
-        reviewRepository.delete(review);
+    review.setContent(request.getContent());
+    review.setRating(request.getRating());
+    review.setIsSpoiler(request.getIsSpoiler());
+    
+    Review saved = reviewRepository.save(review);
+    return convertToResponseDto(saved, userId);
+}
+
+@Transactional
+public void deleteReview(UUID reviewId, UUID userId) {
+    Review review = reviewRepository.findById(reviewId)
+        .orElseThrow(() -> new RuntimeException("Review not found"));
+    
+    if (!review.getUser().getId().equals(userId)) {
+        throw new RuntimeException("You can only delete your own reviews");
     }
+    
+    reviewRepository.delete(review);
+}
     
     public Page<ReviewResponseDto> getAllReviews(int page, int size, UUID currentUserId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));

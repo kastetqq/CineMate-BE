@@ -100,27 +100,27 @@ public class JwtService {
         refreshTokenService.revokeAllUserTokensByEmail(email);
     }
 
-    private String generateJwtToken(String email){
-        Date date = Date.from(LocalDateTime.now().plusHours(2).atZone(ZoneId.systemDefault()).toInstant());
-        return Jwts.builder()
-                .setSubject(email)
-                .claim("token_type", "access")
-                .setIssuedAt(new Date())
-                .setExpiration(date)
-                .signWith(getSignInKey())
-                .compact();
-    }
+private String generateJwtToken(String email){
+    Date date = Date.from(LocalDateTime.now().plusHours(15).atZone(ZoneId.systemDefault()).toInstant());
+    return Jwts.builder()
+            .setSubject(email)
+            .claim("token_type", "access")
+            .setIssuedAt(new Date())
+            .setExpiration(date)
+            .signWith(getSignInKey())
+            .compact();
+}
 
-    private String generateRefreshToken(String email){
-        Date date = Date.from(LocalDateTime.now().plusDays(30).atZone(ZoneId.systemDefault()).toInstant());
-        return Jwts.builder()
-                .setSubject(email)
-                .claim("token_type", "refresh")
-                .setIssuedAt(new Date())
-                .setExpiration(date)
-                .signWith(getSignInKey())
-                .compact();
-    }
+private String generateRefreshToken(String email){
+    Date date = Date.from(LocalDateTime.now().plusDays(7).atZone(ZoneId.systemDefault()).toInstant());
+    return Jwts.builder()
+            .setSubject(email)
+            .claim("token_type", "refresh")
+            .setIssuedAt(new Date())
+            .setExpiration(date)
+            .signWith(getSignInKey())
+            .compact();
+}
 
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
